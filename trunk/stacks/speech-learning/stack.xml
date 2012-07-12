@@ -1,6 +1,6 @@
 <stack>
-  <description brief="speech-learning">speech-learning</description>
-  <author>Maintained by Todd</author>
+  <description brief="speech-learning">Combination of TEXPLORE and SAGG-RIAC to use learned speech for a task </description>
+  <author>Maintained by Todd Hester and Clement Moulin-Frier</author>
   <license></license>  
   <review status="unreviewed" notes=""/>
   <url>http://ros.org/wiki/speech-learning</url>
