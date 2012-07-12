@@ -1,0 +1,9 @@
+<stack>
+  <description brief="speech-learning">speech-learning</description>
+  <author>Maintained by Todd</author>
+  <license></license>  
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/speech-learning</url>
+  <depend stack="ros" />
+
+</stack>
