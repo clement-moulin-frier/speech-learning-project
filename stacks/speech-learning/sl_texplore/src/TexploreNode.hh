@@ -1,5 +1,6 @@
 #include <ros/ros.h>
-#include "std_msgs/String.h"
+
+#include <std_msgs/Empty.h>
 
 #include <sl_msgs/SLState.h>
 #include <sl_msgs/SLGoal.h>
@@ -23,13 +24,16 @@ static ros::Publisher out_speech;
 static ros::Publisher out_done;
 static ros::Publisher out_goal; // if we want to control speech learner
 
-Agent* a = NULL;
+Agent* agent = NULL;
 ETUCTGivenGoal* planner = NULL;
 Random rng;
 bool PRINTS = false;//true;
 int seed = 1;
 bool learningActive = false; // so we know if we're running or the speech learner is running
 std::vector<float> lastState;
+int numactions = 0;
+int maxspeeches = 10;
+int numspeeches = 0;
 
 // default parameters
 float vcoeff = 5;
@@ -40,6 +44,7 @@ bool master = false;
 
 // track which step we're on for current goal
 int istep = 0;
+int nsteps = 20;
 
 // current goal
 std::vector<float> goal;
@@ -50,9 +55,11 @@ sl_msgs::SLGoal lastGoalMsg;
 std::vector<std::pair<float,float> > speeches;
 
 void displayHelp();
-void processState(const sl_msgs::SLAction::ConstPtr &actionIn);
+void processState(const sl_msgs::SLState::ConstPtr &stateIn);
 void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn);
 void processEnvDesc(const sl_msgs::SLEnvDescription::ConstPtr &envIn);
-void processSpeech(const sl_msgs::SLGoal::ConstPtr &speechIn);
+void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn);
 void processDone(const std_msgs::Empty::ConstPtr &doneIn);
 int main(int argc, char *argv[]);
+void selectNextAction();
+void publishAction(int action);

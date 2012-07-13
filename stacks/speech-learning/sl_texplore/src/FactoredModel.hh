@@ -8,6 +8,7 @@
 #define _FACTORED_HH_
 
 #include "C45Tree.hh"
+#include "MultipleClassifiers.hh"
 
 #include "Random.h"
 #include "core.hh"

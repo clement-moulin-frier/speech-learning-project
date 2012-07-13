@@ -1,7 +1,7 @@
 #ifndef _RLCORE_H_
 #define _RLCORE_H_
 
-#include "../Common/Random.h"
+#include "Random.h"
 #include <vector>
 #include <map>
 

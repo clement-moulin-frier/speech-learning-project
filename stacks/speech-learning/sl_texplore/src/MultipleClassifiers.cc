@@ -17,7 +17,7 @@ MultipleClassifiers::MultipleClassifiers(int id, int modelType, int predType,
   mode(trainMode), freq(trainFreq),
   featPct(featPct), expPct(expPct),
   treeThresh(treeThreshold), stoch(stoch),
-  addNoise(!stoch && (modelType == M5MULTI || modelType == M5SINGLE || modelType == M5ALLMULTI || modelType == M5ALLSINGLE || modelType == LSTMULTI || modelType == LSTSINGLE)),
+  addNoise(false),
   rng(rng)
 {
   STDEBUG = false;//true;
