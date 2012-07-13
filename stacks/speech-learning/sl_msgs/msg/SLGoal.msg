@@ -6,3 +6,7 @@ float32[] start_state
 bool[]    start_mask
 float32[] goal_state
 bool[]    goal_mask
+
+# evaluate only - no learning
+bool evaluateOnly 
+
