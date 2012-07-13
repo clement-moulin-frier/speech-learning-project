@@ -30,7 +30,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #target_link_libraries(example ${PROJECT_NAME})
 
 rosbuild_add_executable(env
-  src/env.cpp
+  src/EnvNode.cc
   src/SpeechArmTable.cc
 )
 
