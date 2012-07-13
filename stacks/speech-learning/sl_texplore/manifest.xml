@@ -1,0 +1,14 @@
+<package>
+  <description brief="sl_texplore">
+
+     sl_texplore
+
+  </description>
+  <author>Todd</author>
+  <license>BSD</license>
+  <review status="unreviewed" notes=""/>
+  <url>http://ros.org/wiki/sl_texplore</url>
+
+</package>
+
+
