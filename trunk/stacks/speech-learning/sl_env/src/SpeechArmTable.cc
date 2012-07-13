@@ -373,7 +373,7 @@ void SpeechArmTable::getMinMaxReward(float *minR, float *maxR){
 
   // return a reward range
   // I think if range is 0, I'd get a divide by 0 error somewhere
-  *minR = 0.0;
+  *minR = -1.0;
   *maxR = 10.0;
 
 }
