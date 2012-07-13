@@ -418,39 +418,31 @@ void ETUCTGivenGoal::planOnNewModel(){
   // reset visit counts/q values
   resetUCTCounts();
 
-  // for rmax, only s-a's prediction has changed
-  if (modelType == RMAX){
-    updateStateActionFromModel(prevstate, prevact, previnfo);
-  }
-
   // for other model types, it all could change, clear all cached model predictions
-  else {
-
-    // still update flagged s-a's
-    // then less stuff to query while planning
-    for (std::set<std::vector<float> >::iterator i = statespace.begin();
-         i != statespace.end(); ){
-      state_t s = canonicalize(*i);
-      state_info* info = &(statedata[s]);
-      if (info->needsUpdate){
-        for (int j = 0; j < numactions; j++){
-          updateStateActionFromModel(s, j, info);
-        }
-        info->needsUpdate = false;
-        ++i;
+  
+  // still update flagged s-a's
+  // then less stuff to query while planning
+  for (std::set<std::vector<float> >::iterator i = statespace.begin();
+       i != statespace.end(); ){
+    state_t s = canonicalize(*i);
+    state_info* info = &(statedata[s]);
+    if (info->needsUpdate){
+      for (int j = 0; j < numactions; j++){
+        updateStateActionFromModel(s, j, info);
       }
-
-      else {
-        // remove it as unnecessary
-        deleteInfo(info);
-        statespace.erase(i++);
-        statedata.erase(s);
-      }
-
+      info->needsUpdate = false;
+      ++i;
     }
-    lastUpdate = nactions;
-
+    
+    else {
+      // remove it as unnecessary
+      deleteInfo(info);
+      statespace.erase(i++);
+      statedata.erase(s);
+    }
+    
   }
+  lastUpdate = nactions;
 
 }
 

@@ -7,8 +7,8 @@
 #ifndef _EXPLOREMODEL_HH_
 #define _EXPLOREMODEL_HH_
 
-#include "../Common/Random.h"
-#include "../Common/core.hh"
+#include "Random.h"
+#include "core.hh"
 #include <vector>
 #include <map>
 #include <set>

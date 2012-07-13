@@ -184,14 +184,14 @@ int main(int argc, char *argv[])
   tf::Transform transform;
 
   // Set up Publishers
-  out_env_desc = node.advertise<sl_msgs::SLEnvDescription>("sl_env/sl_env_description",qDepth,true);
-  out_state = node.advertise<sl_msgs::SLState>("sl_env/sl_state",qDepth,false);
+  out_env_desc = node.advertise<sl_msgs::SLEnvDescription>("sl_env/env_description",qDepth,true);
+  out_state = node.advertise<sl_msgs::SLState>("sl_env/state",qDepth,false);
 
   // Set up subscribers
   ros::TransportHints noDelay = ros::TransportHints().tcpNoDelay(true);
-  ros::Subscriber slt_action =  node.subscribe("sl_texplore/sl_action", qDepth, processAction, noDelay);
-  ros::Subscriber slt_speech = node.subscribe("sl_texplore/sl_speech", qDepth, processSpeech, noDelay);
-  ros::Subscriber sls_speech = node.subscribe("sl_splearner/sl_speech", qDepth, processSpeech, noDelay);
+  ros::Subscriber slt_action =  node.subscribe("sl_texplore/action", qDepth, processAction, noDelay);
+  ros::Subscriber slt_speech = node.subscribe("sl_texplore/speech", qDepth, processSpeech, noDelay);
+  ros::Subscriber sls_speech = node.subscribe("sl_splearner/speech", qDepth, processSpeech, noDelay);
 
   // publish env description, first state
   // Setup RL World

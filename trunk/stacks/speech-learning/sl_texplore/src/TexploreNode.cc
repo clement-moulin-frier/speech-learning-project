@@ -56,7 +56,7 @@ void publishAction(int action){
 }
 
 /** Process done */
-void processDone(const std::msgs:Empty::ConstPtr &doneIn){
+void processDone(const std_msgs::Empty::ConstPtr &doneIn){
   if (PRINTS) cout << "Speech learner is done, we are active again" << endl;
   learningActive = true;
   selectNextAction();
@@ -64,7 +64,22 @@ void processDone(const std::msgs:Empty::ConstPtr &doneIn){
 
 /** Process a new speech message. */
 void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
+  // if we have too many, reject
+  if (numspeeches >= maxspeeches){
+    if (PRINTS) cout << "Already too many speeches!" << endl;
+    return;
+  }
+
   std::pair<float, float> speech(speechIn->f1, speechIn->f2);
+
+  // make sure its not too close to ones we already have
+  for (int i = 0; i < numspeeches; i++){
+    if (fabs(speeches[i].first - speechIn->f1) < 0.1 && fabs(speeches[i].second - speechIn->f2) < 0.1){
+      if (PRINTS) cout << "New speech too close to speech " << i << endl;
+      return;
+    }
+  }
+
   speeches.push_back(speech);
   if (PRINTS){
     cout << endl << "  Add SPEECH: " << speech.first << ", " << speech.second << " as action " << (numactions + numspeeches + master) << endl;
@@ -83,15 +98,15 @@ void processState(const sl_msgs::SLState::ConstPtr &stateIn){
   selectNextAction();
 }
 
-void selectNextAction();
-
+void selectNextAction(){
+  
   istep++;
-
-  int a = agent->next_action(lastState);
+  
+  int a = agent->next_action(0, lastState);
 
   // check if we're at the goal, or have reached the maximum number of steps
   // check if at goal
-  goalMatched = true;
+  bool goalMatched = true;
   for (unsigned i = 0; i < goal.size(); i++){
     if (mask[i] && goal[i] != lastState[i]){
       goalMatched = false;
@@ -99,7 +114,7 @@ void selectNextAction();
     } 
   }
 
-  if (isteps >= nsteps || goalMatched){
+  if (istep >= nsteps || goalMatched){
     learningActive = false;
     std_msgs::Empty doneMsg;
     out_done.publish(doneMsg);
@@ -113,9 +128,12 @@ void selectNextAction();
 
 /** Process a new goal message. */
 void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
-  lastGoalMsg = goalIn;
-  goal = goalIn->goal_state;
-  mask = goalIn->goal_mask;
+  lastGoalMsg = *goalIn;
+  
+  for (unsigned i = 0; i < goal.size(); i++){
+    goal[i] = goalIn->goal_state[i];
+    mask[i] = goalIn->goal_mask[i];
+  }
 
   // print new goal
   if (PRINTS){
@@ -146,10 +164,9 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
   if (PRINTS) cout << "Got envrionment " << envIn->title << endl;
 
-  int numactions = envIn->num_actions;
-  int numspeeches = 0;
-  bool speechLearner = master;
-  const int maxactions = numactions + speechLearner + 10;
+  numactions = envIn->num_actions;
+  numspeeches = 0;
+  const int maxactions = numactions + master + maxspeeches;
   float gamma = 0.98; //0.998;
 
   // lets just check this for now
@@ -169,7 +186,10 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
   // default for gridworld like domains
   float lambda = 0.05;
 
+  std::vector<int> statesPerDim;
   statesPerDim.resize(envIn->min_state_range.size(), 0);
+  goal.resize(envIn->min_state_range.size(), 0);
+  mask.resize(envIn->min_state_range.size(), false);
 
   // Construct agent here.
   ModelBasedAgent* agent;
@@ -189,18 +209,18 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
                               10,
                               envIn->min_state_range, envIn->max_state_range,
                               statesPerDim,//0,
-                              0, v, n,
+                              0, vcoeff, ncoeff,
                               false, true, 0.2, true, false,
                               rng);
 
   ETUCTGivenGoal* planner = NULL;
-  planner = new ETUCTGivenGoal(maxactions, gamma, rRange, lambda, 500000, (1.0/actrate), 100, modelType, envIn->max_state_range, envIn->min_state_range, statesPerDim, true, history, rng);
+  planner = new ETUCTGivenGoal(maxactions, gamma, rRange, lambda, 500000, (1.0/actrate), 100, C45TREE, envIn->max_state_range, envIn->min_state_range, statesPerDim, true, 0, rng);
 
   delete agent->planner;
   agent->planner = (Planner*)planner;
   planner->setModel(agent->model);
-  if (speechLearner) planner->setSpeechLearner(numactions);
-  planner->setUsableActions(numactions+speechLearner);
+  if (master) planner->setSpeechLearner(numactions);
+  planner->setUsableActions(numactions+master);
 
 }
 
@@ -221,7 +241,7 @@ int main(int argc, char *argv[])
     {"nsteps", 0, 0, 's'},
     {"actrate", 0, 0, 'a'},
     {"v", 1, 0, 'v'},
-    {"n", 1, 0, 'v'},
+    {"n", 1, 0, 'n'},
     {"master", 1, 0, 'm'},
     {"seed", 1, 0, 'x'},
     {"prints", 0, 0, 'p'},
@@ -247,13 +267,13 @@ int main(int argc, char *argv[])
       break;
 
    case 'v':
-      v = std::atof(optarg);
-      cout << "v coeff: "<< v << endl;
+      vcoeff = std::atof(optarg);
+      cout << "v coeff: "<< vcoeff << endl;
       break;
 
    case 'n':
-      n = std::atof(optarg);
-      cout << "n coeff: "<< n << endl;
+      ncoeff = std::atof(optarg);
+      cout << "n coeff: "<< ncoeff << endl;
       break;
 
     case 'm':
@@ -277,6 +297,8 @@ int main(int argc, char *argv[])
 
   int qDepth = 1;
 
+  rng = Random(1+seed);
+
   // Set up Publishers
   ros::init(argc, argv, "my_tf_broadcaster");
   tf::Transform transform;
@@ -293,15 +315,10 @@ int main(int argc, char *argv[])
   ros::TransportHints noDelay = ros::TransportHints().tcpNoDelay(true);
   ros::Subscriber sl_env =  node.subscribe("sl_env/env_description", qDepth, processEnv, noDelay);
   ros::Subscriber sl_state = node.subscribe("sl_env/state", qDepth, processState, noDelay);
-  ros::Subscriber sl_goal = node.subscribe("sl_effect/goal", qDepth, processGoal, noDelay);
+  ros::Subscriber sl_goal = node.subscribe("sl_effect/tex_goal", qDepth, processGoal, noDelay);
   ros::Subscriber sl_speech = node.subscribe("sl_splearner/new_speech", qDepth, processSpeech, noDelay);
   ros::Subscriber sl_done = node.subscribe("sl_splearner/tex_done", qDepth, processDone, noDelay);
 
-
-  // publish env description, first state
-  // Setup RL World
-  rng = Random(1+seed);
-  initAgent();
 
   ROS_INFO(NODE ": starting main loop");
   

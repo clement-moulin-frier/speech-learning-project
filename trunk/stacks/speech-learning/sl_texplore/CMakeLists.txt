@@ -28,3 +28,15 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 #rosbuild_link_boost(${PROJECT_NAME} thread)
 #rosbuild_add_executable(example examples/example.cpp)
 #target_link_libraries(example ${PROJECT_NAME})
+
+rosbuild_add_executable(texplore
+  src/TexploreNode.cc
+  src/ModelBasedAgent.cc
+  src/ExplorationModel.cc
+  src/FactoredModel.cc
+  src/MultipleClassifiers.cc
+  src/C45Tree.cc
+  src/ETUCTGivenGoal.cc
+)
+
+target_link_libraries(texplore)
