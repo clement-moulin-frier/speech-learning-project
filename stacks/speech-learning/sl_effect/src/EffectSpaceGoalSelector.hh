@@ -92,6 +92,11 @@ public:
   int chooseHighCompetenceLearner(int goalIndex);
   int chooseCompetenceProgressLearner(int goalIndex);
 
+  /** For eval. */
+  void initOutputFiles();
+  void evaluateGoals();
+  ofstream* evalGoal;
+
   bool GOALDEBUG;
   bool GOALSELECTDEBUG;
 
@@ -104,6 +109,7 @@ protected:
   int currentGoalIndex;
   std::vector<float> startState;
   int whichLearner;
+  int nGoalsTried;
 
 private:
 
