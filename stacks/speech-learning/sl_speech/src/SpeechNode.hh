@@ -36,6 +36,28 @@ int nsteps = 10;
 std::vector<float> goal;
 std::vector<bool> mask;
 int goalFrom = 0;
+int goalIndex = -1;
+
+int tryThresh = 10; // how many times we should try a speech
+int successThresh = 9; // how successful does it need to be?
+
+struct goalInfo {
+  std::vector<float> goal;
+  std::vector<bool> mask;
+
+  float best_f1;
+  float best_f2;
+
+  int nSuccess;
+  int nTry;
+
+  bool sentToTexplore;
+};
+
+int matchGoal(const sl_msgs::SLGoal::ConstPtr &goalIn);
+
+
+std::vector<goalInfo> goalsTried;
 
 void displayHelp();
 void processState(const sl_msgs::SLState::ConstPtr &stateIn);

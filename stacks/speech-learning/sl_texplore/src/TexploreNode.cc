@@ -74,7 +74,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
   // make sure its not too close to ones we already have
   for (int i = 0; i < numspeeches; i++){
-    if (fabs(speeches[i].first - speechIn->f1) < 0.1 && fabs(speeches[i].second - speechIn->f2) < 0.1){
+    if (fabs(speeches[i].first - speechIn->f1) < 0.15 && fabs(speeches[i].second - speechIn->f2) < 0.15){
       if (PRINTS) cout << "New speech too close to speech " << i << endl;
       return;
     }
@@ -310,7 +310,7 @@ int main(int argc, char *argv[])
   out_speech = node.advertise<sl_msgs::SLSpeech>("sl_texplore/speech",qDepth,false);
   out_done = node.advertise<std_msgs::Empty>("sl_texplore/done",qDepth, false);
   // send new goals to sagg-riac speech learner
-  out_goal = node.advertise<sl_msgs::SLSpeech>("sl_texplore/speech_goal",qDepth,false);
+  out_goal = node.advertise<sl_msgs::SLGoal>("sl_texplore/speech_goal",qDepth,false);
 
   // Set up subscribers
   ros::TransportHints noDelay = ros::TransportHints().tcpNoDelay(true);
