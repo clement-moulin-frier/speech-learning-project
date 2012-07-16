@@ -33,6 +33,8 @@ void processEnvDesc(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
   // init the goal selection module
   selector = new EffectSpaceGoalSelector(envIn->num_objects, envIn->width, envIn->min_state_range, envIn->max_state_range, goalSelect, learnerSelect, tau, theta, rng);
 
+  selector->GOALDEBUG = PRINTS;
+
 }
 
 

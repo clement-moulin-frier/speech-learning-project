@@ -17,7 +17,7 @@ EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, cons
   tau(tau), theta(theta), rng(rng)
 {
 
-  GOALDEBUG = true;
+  GOALDEBUG = false;//true;
 
   initGoals();
 }
@@ -162,7 +162,7 @@ void EffectSpaceGoalSelector::initGoals(){
 EffectSpaceGoalSelector::goal EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, int* learner){
 
   if (GOALDEBUG){
-    cout << "Select goal from state: ";
+    cout << endl << "Select goal from state: ";
     for (unsigned i = 0; i < currentState.size(); i++){
       cout << currentState[i] << ", ";
     }
@@ -273,7 +273,7 @@ int EffectSpaceGoalSelector::chooseHighCompetenceLearner(int goalIndex){
 
 
 void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
-  if (GOALDEBUG) cout << endl << currentGoalIndex << " complete. " << endl;
+  if (GOALDEBUG) cout << currentGoalIndex << " complete. " << endl;
 
   // figure out distance to goal achieved
   float dist = calculateDistance(finalState);

@@ -24,7 +24,7 @@ SpeechArmTable::SpeechArmTable(Random &rand, bool stochastic, int width, int nob
     exit(-1);
   }
 
-  SPDEBUG = true; //false;
+  SPDEBUG = false;
   numspeeches = 0;
   numactions = INIT_NUMACTIONS;
 

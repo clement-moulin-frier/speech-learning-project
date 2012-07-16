@@ -41,7 +41,7 @@ ETUCTGivenGoal::ETUCTGivenGoal(int numactions, float gamma, float rrange, float 
   UCTDEBUG = false; //true;//false;
   REALSTATEDEBUG = false;
   HISTORYDEBUG = false; //true; //false;
-  GOALDEBUG = true;
+  GOALDEBUG = false;//true;
 
   featmax = fmax;
   featmin = fmin;
