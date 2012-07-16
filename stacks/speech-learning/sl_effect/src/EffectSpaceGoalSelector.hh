@@ -74,9 +74,9 @@ public:
   void initGoals();
 
   /** Select a goal. */
-  int selectGoal(std::vector<float> currentState, goal* selectedGoal);
-  int selectRandomGoal(std::vector<float> currentState, goal* selectedGoal);
-  int selectCompetenceProgressGoal(std::vector<float> currentState, goal* selectedGoal);
+  goal selectGoal(std::vector<float> currentState, int* learner);
+  int selectRandomGoal(std::vector<float> currentState);
+  int selectCompetenceProgressGoal(std::vector<float> currentState);
 
   void printGoal(goal* selectedGoal);
 

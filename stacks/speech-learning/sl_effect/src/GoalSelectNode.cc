@@ -39,7 +39,8 @@ void processEnvDesc(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
 void selectGoal(){
 
   // ask for a goal
-  int learner = selector->selectGoal(lastState, &currentGoal);
+  int learner = -1;
+  currentGoal = selector->selectGoal(lastState, &learner);
 
   // send appropriate message (not eval mode)
   currentGoal.goalMsg.evaluateOnly = false;
