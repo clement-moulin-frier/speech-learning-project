@@ -12,6 +12,8 @@ void displayHelp(){
   cout << "\n Options:\n";
   cout << "--seed value (integer seed for random number generator)\n";
   cout << "--nsteps (how many speeches it can attempt to reach goal)\n";
+  cout << "--ntries (num times to try a speech to evaluate it)\n";
+  cout << "--rate (what success rate we must achieve to send to texplore)\n";
   cout << "--prints (turn on debug printing of actions/states)\n";
   exit(-1);
 }
@@ -122,12 +124,14 @@ void tryNextAction(){
     if (PRINTS) cout << "Reached GOAL!!!" << endl;
     goalsTried[goalIndex].nSuccess++;
     // if its a good one, send it to texplore
-    if (goalsTried[goalIndex].nTry == tryThresh && goalsTried[goalIndex].nSuccess >= successThresh){
-      cout << endl << "Very successful speech with rate: "<< goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
+    float rate = (float)goalsTried[goalIndex].nSuccess / (float)goalsTried[goalIndex].nTry;
+    if (goalsTried[goalIndex].nTry == tryThresh && rate >= minRate && !goalsTried[goalIndex].sentToTexplore){
+      cout << endl << "Very successful speech with rate: " << rate << ", " << goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
       sl_msgs::SLSpeech speechMsg;
       speechMsg.f1 = goalsTried[goalIndex].best_f1;
       speechMsg.f2 = goalsTried[goalIndex].best_f2;
       out_speech_tex.publish(speechMsg);
+      goalsTried[goalIndex].sentToTexplore = true;
     }
   }
 
@@ -144,10 +148,14 @@ void tryNextAction(){
 
   sl_msgs::SLSpeech speechMsg;
 
+  // if we've found the best one
+  if (goalsTried[goalIndex].sentToTexplore){
+    cout << "Try sent speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+  }
 
   // if we have a hint of a speech that works, and haven't tried x times
   // try it again
-  if (goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
+  else if (goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
     cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
@@ -197,6 +205,8 @@ int main(int argc, char *argv[])
   int option_index = 0;
   static struct option long_options[] = {
     {"nsteps", 1, 0, 's'},
+    {"ntries", 1, 0, 't'},
+    {"rate", 1, 0, 'r'},
     {"seed", 1, 0, 'x'},
     {"prints", 0, 0, 'p'},
     {"help", 0, 0, 'h'}
@@ -213,6 +223,16 @@ int main(int argc, char *argv[])
     case 's':
       nsteps = std::atoi(optarg);
       cout << "nsteps: " << nsteps << endl;
+      break;
+
+    case 't':
+      tryThresh = std::atoi(optarg);
+      cout << "ntries: " << tryThresh << endl;
+      break;
+
+    case 'r':
+      minRate = std::atof(optarg);
+      cout << "minimum success rate" << minRate << endl;
       break;
 
     case 'p':
