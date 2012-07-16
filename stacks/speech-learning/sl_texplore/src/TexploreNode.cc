@@ -217,6 +217,9 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
   cout << "Agent initialized, init special goal planner" << endl << flush;
 
   planner = (ETUCTGivenGoal*)agent->planner;
+
+  planner->GOALDEBUG = PRINTS;
+
   if (master) planner->setSpeechLearner(numactions);
   planner->setUsableActions(numactions+master);
 

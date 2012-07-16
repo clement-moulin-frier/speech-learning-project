@@ -66,6 +66,8 @@ void initEnvironment(){
   desc.title = "Speech Arm Table Domain\n";
   e = new SpeechArmTable(rng, stochastic, width, nobjects, speech_radius);
 
+  ((SpeechArmTable*)e)->SPDEBUG = PRINTS;
+
   // fill in some parameters
   desc.width = width;
   desc.num_objects = nobjects;
