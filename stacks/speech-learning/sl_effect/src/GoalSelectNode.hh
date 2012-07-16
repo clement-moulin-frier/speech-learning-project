@@ -33,7 +33,7 @@ bool PRINTS = false;//true;
 int goalSelect = EffectSpaceGoalSelector::RandomGoal;
 int learnerSelect = EffectSpaceGoalSelector::TexploreOnly;
 int tau = 2;
-int theta = 2; // although domain is stochastic, taking n-steps to reach goal should be achievable deterministically
+int theta = 3; // although domain is stochastic, taking n-steps to reach goal should be achievable deterministically
 
 void displayHelp();
 void processState(const sl_msgs::SLState::ConstPtr &stateIn);

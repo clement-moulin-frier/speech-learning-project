@@ -37,9 +37,10 @@ std::vector<float> goal;
 std::vector<bool> mask;
 int goalFrom = 0;
 int goalIndex = -1;
+bool evalOnly = false;
 
 int tryThresh = 10; // how many times we should try a speech
-float minRate = 0.85; // how successful does it need to be?
+float minRate = 0.82; // how successful does it need to be?
 
 struct goalInfo {
   std::vector<float> goal;
