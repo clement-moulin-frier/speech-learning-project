@@ -90,7 +90,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
 /** Process a new state message. */
 void processState(const sl_msgs::SLState::ConstPtr &stateIn){
-  cout << "Received state message" << endl;
+  if (PRINTS) cout << "Received state message" << endl;
   lastState = stateIn->state;
 
   // do nothing if we're not the learner right now
@@ -129,7 +129,7 @@ void selectNextAction(){
 
 /** Process a new goal message. */
 void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
-  cout << endl << "Received goal message" << endl << flush;
+  if (PRINTS) cout << endl << "Received goal message" << endl << flush;
   lastGoalMsg = *goalIn;
 
   for (unsigned i = 0; i < goal.size(); i++){
@@ -239,8 +239,8 @@ int main(int argc, char *argv[])
   const char* optflags = "ds:";
   int option_index = 0;
   static struct option long_options[] = {
-    {"nsteps", 0, 0, 's'},
-    {"actrate", 0, 0, 'a'},
+    {"nsteps", 1, 0, 's'},
+    {"actrate", 1, 0, 'a'},
     {"v", 1, 0, 'v'},
     {"n", 1, 0, 'n'},
     {"master", 1, 0, 'm'},

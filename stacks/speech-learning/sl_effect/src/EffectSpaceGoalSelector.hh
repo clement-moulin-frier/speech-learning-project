@@ -31,7 +31,7 @@ public:
       \param rng Initial state of the random number generator to use*/
   EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
                           const std::vector<float> &featmax, int goalSelect,
-                          int learnerSelect, int tau, int theta,
+                          int learnerSelect, int tau, int theta, bool debug,
                           Random rng = Random());
   
   /** Unimplemented copy constructor: internal state cannot be simply
@@ -48,6 +48,7 @@ public:
   enum learnerSelectTypes {
     RandomLearner,
     Competence,
+    CompProgress,
     TexploreOnly
   };
 
@@ -86,6 +87,7 @@ public:
   /** Select a learner */
   int chooseLearner(int goalIndex);
   int chooseHighCompetenceLearner(int goalIndex);
+  int chooseCompetenceProgressLearner(int goalIndex);
 
   bool GOALDEBUG;
 

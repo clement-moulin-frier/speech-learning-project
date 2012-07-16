@@ -10,14 +10,14 @@
 
 EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
                                                  const std::vector<float> &featmax, int goalSelect,
-                                                 int learnerSelect, int tau, int theta,
+                                                 int learnerSelect, int tau, int theta, bool debug,
                                                  Random rng):
   numobjects(numobjects), width(width), featmin(featmin), featmax(featmax),
   goalSelect(goalSelect), learnerSelect(learnerSelect), 
   tau(tau), theta(theta), rng(rng)
 {
 
-  GOALDEBUG = false;//true;
+  GOALDEBUG = debug;
 
   initGoals();
 }
@@ -43,10 +43,13 @@ void EffectSpaceGoalSelector::initGoals(){
       newGoal.goalMsg.goal_mask[1] = true;
       newGoal.goalMsg.goal_state[0] = i;
       newGoal.goalMsg.goal_state[1] = j;
-      newGoal.goalName = "Move hand to x,y";
+      newGoal.goalName.clear();
+      ostringstream os(newGoal.goalName);
+      os << "Move hand to " << i << ", " << j;
+      newGoal.goalName = os.str();
 
       if (GOALDEBUG){
-        cout << "Adding goal " << goals.size() << ": Move hand to " << i << ", " << j << endl;
+        cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
       goals.push_back(newGoal);
@@ -65,10 +68,15 @@ void EffectSpaceGoalSelector::initGoals(){
 
       newGoal.goalMsg.goal_state[3+6*i+4] = 1 - j;
       newGoal.goalMsg.start_state[3+6*i+4] = j;
-      newGoal.goalName = "Make object reachable/unreachable";
+      newGoal.goalName.clear();
+      ostringstream os(newGoal.goalName);
+      os << "Make object " << i;
+      if (newGoal.goalMsg.goal_state[3+6*i+4]) os << " reachable.";
+      else os << " UNreachable.";
+      newGoal.goalName = os.str();
 
       if (GOALDEBUG){
-        cout << "Adding goal " << goals.size() << ": Make object " << i << " reachable: " << newGoal.goalMsg.goal_state[3+6*i+4] << endl;
+        cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
       goals.push_back(newGoal);
@@ -85,14 +93,21 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.goal_state[3+6*i+3] = 0;
     newGoal.goalMsg.goal_mask[3+6*i+2] = true;
     newGoal.goalMsg.goal_mask[3+6*i+3] = true;
-    newGoal.goalName = "Put hand on object";
 
     // start reachable or not
     for (int j = 0; j < 2; j++){
       newGoal.goalMsg.start_state[3+6*i+4] = j;
-      
+      newGoal.goalName.clear();
+      ostringstream os(newGoal.goalName);
+      os << "Put hand on ";
+      if (newGoal.goalMsg.start_state[3+6*i+4])
+        os << "reachable object " << i;
+      else
+        os << "unreachable object " << i;
+      newGoal.goalName = os.str();
+
       if (GOALDEBUG){
-        cout << "Adding goal " << goals.size() << ": Put hand on object " << i << " with it starting reachable: " << newGoal.goalMsg.start_state[3+6*i+4] << endl;
+        cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
       goals.push_back(newGoal);
@@ -107,7 +122,6 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.start_mask[3+6*i+4] = true;
     newGoal.goalMsg.goal_mask[3+6*i+5] = true;
     newGoal.goalMsg.start_mask[3+6*i+5] = true;
-    newGoal.goalName = "Pickup/Pudown object";
 
     // start reachable or not
     for (int j = 0; j < 2; j++){
@@ -117,9 +131,21 @@ void EffectSpaceGoalSelector::initGoals(){
       for (int k = 0; k < 2; k++){
         newGoal.goalMsg.goal_state[3+6*i+5] = 1 - k;
         newGoal.goalMsg.start_state[3+6*i+5] = k;
+        newGoal.goalName.clear();
+        ostringstream os(newGoal.goalName);
+        os << "Put ";
+        if (newGoal.goalMsg.start_state[3+6*i+4])
+          os << "reachable object " << i;
+        else
+          os << "unreachable object " << i;
+        if (newGoal.goalMsg.goal_state[3+6*i+5])
+          os << " in hand.";
+        else
+          os << " down.";
+        newGoal.goalName = os.str();
 
         if (GOALDEBUG){
-          cout << "Adding goal " << goals.size() << ": Put object " << i << " in hand: " << newGoal.goalMsg.goal_state[3+6*i+5] << " from reachable: " << newGoal.goalMsg.start_state[3+6*i+4] << endl;
+          cout << "Adding goal " << goals.size() << ": ";
           printGoal(&newGoal);
         }
         goals.push_back(newGoal);
@@ -136,7 +162,6 @@ void EffectSpaceGoalSelector::initGoals(){
     // and care about final destination 
     newGoal.goalMsg.goal_mask[3+6*i+0] = true;
     newGoal.goalMsg.goal_mask[3+6*i+1] = true;    
-    newGoal.goalName = "Put object at location x,y";
 
     for (int x = 0; x < width; x++){
       for (int y = 0; y < width*2; y++){
@@ -146,9 +171,18 @@ void EffectSpaceGoalSelector::initGoals(){
         // start from reachable/unreachable
         for (int j = 0; j < 2; j++){
           newGoal.goalMsg.start_state[3+6*i+4] = j;
-          
+          newGoal.goalName.clear();
+          ostringstream os(newGoal.goalName);
+          os << "Put ";
+          if (newGoal.goalMsg.start_state[3+6*i+4])
+            os << "reachable object " << i;
+          else
+            os << "unreachable object " << i;
+          os << " at loc: " << x << ", " << y;
+          newGoal.goalName = os.str();
+
           if (GOALDEBUG){
-            cout << "Adding goal " << goals.size() << ": Put object " << i << " at loc: " << x << ", " << y << " from reachable: " << newGoal.goalMsg.start_state[3+6*i+4] << endl;
+            cout << "Adding goal " << goals.size() << ": ";
             printGoal(&newGoal);
           }
           goals.push_back(newGoal);
@@ -208,7 +242,7 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
     selectedGoal = &(goals[goalIndex]);
 
     if (GOALDEBUG){
-      cout << "Randomly selected goal " << goalIndex << ": ";
+      cout << " Randomly selected goal " << goalIndex << ": ";
       printGoal(selectedGoal);
     }
 
@@ -220,7 +254,7 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
     for (unsigned i = 0; i < currentState.size(); i++){
       // check if start state matches
       if (selectedGoal->goalMsg.start_mask[i] && selectedGoal->goalMsg.start_state[i] != currentState[i]){
-        if (GOALDEBUG) cout << "Goal " << goalIndex << " not valid because feat " << i << " does not match start state" << endl;
+        if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because feat " << i << " does not match start state" << endl;
         goalValid = false;
         break;
       }
@@ -232,7 +266,7 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
       if (!goalValid) break;
     } // loop over features
     if (!goalCheck){
-      if (GOALDEBUG) cout << "Goal " << goalIndex << " not valid because current state already matches goal" << endl;
+      if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because current state already matches goal" << endl;
       goalValid = false;
     }
   }
@@ -256,6 +290,8 @@ int EffectSpaceGoalSelector::chooseLearner(int goalIndex){
     learner = TexploreLearner;
   } else if (learnerSelect == Competence){
     learner = chooseHighCompetenceLearner(goalIndex);
+  } else if (learnerSelect == CompProgress){
+    learner = chooseCompetenceProgressLearner(goalIndex);
   } else {
     cout << "ERROR: invalid learner selection method: " << learnerSelect << endl;
     exit(-1);
@@ -266,6 +302,30 @@ int EffectSpaceGoalSelector::chooseLearner(int goalIndex){
 }
 
 int EffectSpaceGoalSelector::chooseHighCompetenceLearner(int goalIndex){
+  // get average of last theta rewards for each learner
+  // if less than theta attempts, be optimistic and assume 0 dist achieved
+  float texploreSum = 0;
+  for (int i = (int)goals[goalIndex].texploreRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].texploreRewards.size() - theta; i--){
+    texploreSum += goals[goalIndex].texploreRewards[i];
+  }
+  texploreSum /= (float)theta;
+
+  float speechSum = 0;
+  for (int i = (int)goals[goalIndex].speechRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].speechRewards.size() - theta; i--){
+    speechSum += goals[goalIndex].speechRewards[i];
+  }
+  speechSum /= (float)theta;
+
+  if (GOALDEBUG) cout << "TEXPLORE avg dist: " << texploreSum << ", speech avg dist: " << speechSum << endl;
+  if (texploreSum < speechSum)
+    return TexploreLearner;
+  else if (speechSum < texploreSum)
+    return SpeechLearner;
+  else
+    return rng.bernoulli(0.5);
+}
+
+int EffectSpaceGoalSelector::chooseCompetenceProgressLearner(int goalIndex){
   // TODO
   cout << endl << "ERROR: Competence-based learner selection not implemented yet!" << endl << endl;
   return rng.bernoulli(0.5);
@@ -273,7 +333,7 @@ int EffectSpaceGoalSelector::chooseHighCompetenceLearner(int goalIndex){
 
 
 void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
-  if (GOALDEBUG) cout << currentGoalIndex << " complete. " << endl;
+  if (GOALDEBUG) cout << "Goal " << currentGoalIndex << " attempt complete. " << endl;
 
   // figure out distance to goal achieved
   float dist = calculateDistance(finalState);
@@ -315,9 +375,10 @@ float EffectSpaceGoalSelector::calculateDistance(std::vector<float> finalState){
       nRelevantFeatures++;
       // distance in this feature from start to goal
       float fullRange = fabs(startState[i] - goals[currentGoalIndex].goalMsg.goal_state[i]);
-      if (fullRange < 1e-2) fullRange = 1e-2; // in case we started at goal in this feature
+      if (fullRange < 0.2) fullRange = 0.2; // in case we started at goal in this feature
       // distance in this feature final state is from goal
       float finalDist = fabs(finalState[i] - goals[currentGoalIndex].goalMsg.goal_state[i]);
+      if (GOALDEBUG) cout << " Feat " << i << " went from " << startState[i] << " to " << finalState[i] << ", goal: " << goals[currentGoalIndex].goalMsg.goal_state[i] << endl;
       // dist scaled to pct of range
       totalDist += (finalDist / fullRange);
     }
