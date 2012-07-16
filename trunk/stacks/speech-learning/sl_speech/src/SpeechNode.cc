@@ -47,6 +47,9 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
     mask[i] = goalIn->goal_mask[i];
   }
 
+  goalIndex = matchGoal(goalIn);
+  if (PRINTS) cout << "Goal matches tried goal: " << goalIndex << endl;
+
   // print new goal
   if (PRINTS){
     cout << "Set goal: " << endl << flush;
@@ -57,6 +60,38 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
   }
 
   tryNextAction();
+}
+
+int matchGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
+  for (unsigned i = 0; i < goalsTried.size(); i++){
+    bool possibleMatch = true;
+    for (unsigned j = 0; j < goalIn->goal_mask.size(); j++){
+      if (goalIn->goal_mask[j] != goalsTried[i].mask[j]){
+        possibleMatch = false;
+        break;
+      }
+      if (goalIn->goal_mask[j] && goalIn->goal_state[j] != goalsTried[i].goal[j]){
+        possibleMatch = false;
+        break;
+      }
+    } // features
+    if (possibleMatch)
+      return i;
+  }
+
+  // otherwise, add it in
+  goalInfo gi;
+  gi.goal.resize(goalIn->goal_mask.size(), 0);
+  gi.mask.resize(goalIn->goal_mask.size(), false);
+  for (unsigned i = 0; i < gi.goal.size(); i++){
+    gi.goal[i] = goalIn->goal_state[i];
+    gi.mask[i] = goalIn->goal_mask[i];
+  }
+  gi.nSuccess = 0;
+  gi.nTry = 0;
+  gi.sentToTexplore = false;
+  goalsTried.push_back(gi);
+  return goalsTried.size()-1;
 }
 
 void processState(const sl_msgs::SLState::ConstPtr &stateIn){
@@ -83,8 +118,17 @@ void tryNextAction(){
     } 
   }
 
-  if (goalMatched && PRINTS){
-    cout << "Reached GOAL!!!" << endl;
+  if (goalMatched){
+    if (PRINTS) cout << "Reached GOAL!!!" << endl;
+    goalsTried[goalIndex].nSuccess++;
+    // if its a good one, send it to texplore
+    if (goalsTried[goalIndex].nTry == tryThresh && goalsTried[goalIndex].nSuccess >= successThresh){
+      cout << endl << "Very successful speech with rate: "<< goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
+      sl_msgs::SLSpeech speechMsg;
+      speechMsg.f1 = goalsTried[goalIndex].best_f1;
+      speechMsg.f2 = goalsTried[goalIndex].best_f2;
+      out_speech_tex.publish(speechMsg);
+    }
   }
 
   if (istep >= nsteps || goalMatched){
@@ -98,10 +142,37 @@ void tryNextAction(){
     return;
   }
 
-  // sample a random speech sound
   sl_msgs::SLSpeech speechMsg;
-  speechMsg.f1 = rng.uniform(3, 6.5);
-  speechMsg.f2 = rng.uniform(2.5, 4);
+
+
+  // if we have a hint of a speech that works, and haven't tried x times
+  // try it again
+  if (goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
+    cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+  }
+
+  // if we have a hint of a speech that works, and have tried it x times, try nearby speech
+  else if (goalsTried[goalIndex].nSuccess > 0){
+    cout << "Try speech near occasionally successful one: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+    goalsTried[goalIndex].best_f1 += rng.uniform(-0.2,0.2);
+    goalsTried[goalIndex].best_f2 += rng.uniform(-0.2,0.2);
+    goalsTried[goalIndex].nSuccess = 1;
+    goalsTried[goalIndex].nTry = 1;
+  }
+
+  // no idea, try random speech
+  else {
+    cout << "Try random speech" << endl;
+    // sample a random speech sound
+    goalsTried[goalIndex].best_f1 = rng.uniform(3, 6.5);
+    goalsTried[goalIndex].best_f2 = rng.uniform(2.5, 4);
+    goalsTried[goalIndex].nSuccess = 0;
+    goalsTried[goalIndex].nTry = 0;
+  }
+  
+  goalsTried[goalIndex].nTry++;
+  speechMsg.f1 = goalsTried[goalIndex].best_f1;
+  speechMsg.f2 = goalsTried[goalIndex].best_f2;
 
   if (PRINTS) cout << "Try speech: " << speechMsg.f1 << ", " << speechMsg.f2 << endl;
   
