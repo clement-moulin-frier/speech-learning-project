@@ -326,9 +326,58 @@ int EffectSpaceGoalSelector::chooseHighCompetenceLearner(int goalIndex){
 }
 
 int EffectSpaceGoalSelector::chooseCompetenceProgressLearner(int goalIndex){
-  // TODO
-  cout << endl << "ERROR: Competence-based learner selection not implemented yet!" << endl << endl;
-  return rng.bernoulli(0.5);
+  // get current average dist, and average from tau steps ago, for each learner
+
+  // TODO: what do we do if we don't have enough data yet? return random learner?
+  if (goals[goalIndex].texploreRewards.size() < theta+tau){
+    if (GOALDEBUG) cout << "Only " << goals[goalIndex].texploreRewards.size() << " TEXPLORE results, returning random learner" << endl;
+    return rng.bernoulli(0.5);
+  }
+  if (goals[goalIndex].speechRewards.size() < theta+tau){
+    if (GOALDEBUG) cout << "Only " << goals[goalIndex].speechRewards.size() << " SPEECH results, returning random learner" << endl;
+    return rng.bernoulli(0.5);
+  }
+
+
+  float texploreNow = 0;
+  for (int i = (int)goals[goalIndex].texploreRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].texploreRewards.size() - theta; i--){
+    texploreNow += goals[goalIndex].texploreRewards[i];
+  }
+  texploreNow /= (float)theta;
+
+  float texploreBefore = 0;
+  for (int i = (int)goals[goalIndex].texploreRewards.size()-1-tau; i >= 0 && i >= (int)goals[goalIndex].texploreRewards.size() - theta - tau; i--){
+    texploreBefore += goals[goalIndex].texploreRewards[i];
+  }
+  texploreBefore /= (float)theta;
+
+  float speechNow = 0;
+  for (int i = (int)goals[goalIndex].speechRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].speechRewards.size() - theta; i--){
+    speechNow += goals[goalIndex].speechRewards[i];
+  }
+  speechNow /= (float)theta;
+
+  float speechBefore = 0;
+  for (int i = (int)goals[goalIndex].speechRewards.size()-1-tau; i >= 0 && i >= (int)goals[goalIndex].speechRewards.size() - theta - tau; i--){
+    speechBefore += goals[goalIndex].speechRewards[i];
+  }
+  speechBefore /= (float)theta;
+
+  float texploreChange = fabs(texploreNow - texploreBefore);
+  float speechChange = fabs(speechNow - speechBefore);
+
+  if (GOALDEBUG){
+    cout << "TEXPLORE performance went from " << texploreBefore << " to " << texploreNow << " change: " << texploreChange << endl;
+    cout << "SPEECH performance went from " << speechBefore << " to " << speechNow << " change: " << speechChange << endl;
+  }
+
+  if (texploreChange > speechChange)
+    return TexploreLearner;
+  else if (speechChange > texploreChange)
+    return SpeechLearner;
+  else
+    return rng.bernoulli(0.5);
+
 }
 
 
