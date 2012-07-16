@@ -21,6 +21,7 @@ void displayHelp(){
   cout << "--progressgoal (select goals with competence progress)\n";
   cout << "--randomlearner (select learner randomly)\n";
   cout << "--texplorelearner (always select texplore as learner)\n";
+  cout << "--speechlearner (always select speech system as learner)\n";
   cout << "--competencelearner (select learner with highest competence)\n";
   cout << "--progresslearner (select learner with highest competence progress)\n";
   cout << "--tau value (Compare with competence estimate tau steps ago)\n";
@@ -51,10 +52,7 @@ void selectGoal(){
   if (learner == EffectSpaceGoalSelector::TexploreLearner){
     out_goal_tex.publish(currentGoal.goalMsg);
   } else {
-    // TODO: for now, just report back bad results
-    selector->updateGoal(lastState);
-    selectGoal();
-    //out_goal_speech.publish(currentGoal.goalMsg);
+    out_goal_speech.publish(currentGoal.goalMsg);
   }
 }
 
@@ -96,6 +94,7 @@ int main(int argc, char *argv[])
     {"progressgoal", 0, 0, 'g'},
     {"randomlearner", 0, 0, 'l'},
     {"texplorelearner", 0, 0, 't'},
+    {"speechlearner", 0, 0, 's'},
     {"competencelearner", 0, 0, 'c'},
     {"progresslearner", 0, 0, 'o'},
     {"tau", 1, 0, 'a'},
@@ -141,6 +140,11 @@ int main(int argc, char *argv[])
     case 't':
       learnerSelect = EffectSpaceGoalSelector::TexploreOnly;
       cout << "Always Select TEXPLORE as Learner" << endl;
+      break;
+
+    case 's':
+      learnerSelect = EffectSpaceGoalSelector::SpeechOnly;
+      cout << "Always Select Speech System as Learner" << endl;
       break;
 
     case 'c':

@@ -49,7 +49,8 @@ public:
     RandomLearner,
     Competence,
     CompProgress,
-    TexploreOnly
+    TexploreOnly,
+    SpeechOnly
   };
 
   enum learners {
