@@ -24,7 +24,7 @@ static ros::Publisher out_speech;
 static ros::Publisher out_done;
 static ros::Publisher out_goal; // if we want to control speech learner
 
-Agent* agent = NULL;
+ModelBasedAgent* agent = NULL;
 ETUCTGivenGoal* planner = NULL;
 Random rng;
 bool PRINTS = false;//true;

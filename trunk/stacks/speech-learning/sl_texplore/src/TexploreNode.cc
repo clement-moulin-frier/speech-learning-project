@@ -90,6 +90,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
 /** Process a new state message. */
 void processState(const sl_msgs::SLState::ConstPtr &stateIn){
+  cout << "Received state message" << endl;
   lastState = stateIn->state;
 
   // do nothing if we're not the learner right now
@@ -128,8 +129,9 @@ void selectNextAction(){
 
 /** Process a new goal message. */
 void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
+  cout << endl << "Received goal message" << endl << flush;
   lastGoalMsg = *goalIn;
-  
+
   for (unsigned i = 0; i < goal.size(); i++){
     goal[i] = goalIn->goal_state[i];
     mask[i] = goalIn->goal_mask[i];
@@ -137,10 +139,10 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 
   // print new goal
   if (PRINTS){
-    cout << "Set goal: " << endl;
+    cout << "Set goal: " << endl << flush;
     for (unsigned i = 0; i < goal.size(); i++){
       if (mask[i])
-        cout << "  Feat " << i << ": Goal value: " << goal[i] << endl;
+        cout << "  Feat " << i << ": Goal value: " << goal[i] << endl << flush;
     }
   }
 
@@ -192,7 +194,6 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
   mask.resize(envIn->min_state_range.size(), false);
 
   // Construct agent here.
-  ModelBasedAgent* agent;
   if (PRINTS) cout << "Agent: Model Based" << endl;
   if (PRINTS) cout << "Lambda: " << lambda << endl;
   if (PRINTS) cout << "Act Rate: " << actrate << " Hz, seconds: " << (1.0/actrate) << endl;
@@ -213,12 +214,9 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
                               false, true, 0.2, true, false,
                               rng);
 
-  ETUCTGivenGoal* planner = NULL;
-  planner = new ETUCTGivenGoal(maxactions, gamma, rRange, lambda, 500000, (1.0/actrate), 100, C45TREE, envIn->max_state_range, envIn->min_state_range, statesPerDim, true, 0, rng);
+  cout << "Agent initialized, init special goal planner" << endl << flush;
 
-  delete agent->planner;
-  agent->planner = (Planner*)planner;
-  planner->setModel(agent->model);
+  planner = (ETUCTGivenGoal*)agent->planner;
   if (master) planner->setSpeechLearner(numactions);
   planner->setUsableActions(numactions+master);
 

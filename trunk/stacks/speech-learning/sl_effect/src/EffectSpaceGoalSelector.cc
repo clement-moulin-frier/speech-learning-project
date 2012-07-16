@@ -159,7 +159,7 @@ void EffectSpaceGoalSelector::initGoals(){
 }
 
 
-int EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, goal* selectedGoal){
+EffectSpaceGoalSelector::goal EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, int* learner){
 
   if (GOALDEBUG){
     cout << "Select goal from state: ";
@@ -171,9 +171,9 @@ int EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, goal* s
 
   int goalIndex = 0;
   if (goalSelect == RandomGoal) {
-    goalIndex = selectRandomGoal(currentState, selectedGoal);
+    goalIndex = selectRandomGoal(currentState);
   } else if (goalSelect == SaggRiac) {
-    goalIndex = selectCompetenceProgressGoal(currentState, selectedGoal);
+    goalIndex = selectCompetenceProgressGoal(currentState);
   } else {
     cout << "ERROR: invalid goal select type: " << goalSelect << endl;
     exit(-1);
@@ -181,25 +181,26 @@ int EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, goal* s
 
   if (GOALDEBUG){
     cout << "Selected goal " << goalIndex << ": ";
-    printGoal(selectedGoal);
+    printGoal(&(goals[goalIndex]));
   }
 
   // now choose learner
-  int learner = chooseLearner(goalIndex);
+  *learner = chooseLearner(goalIndex);
 
   // save some stuff so we know what we were doing at the end
   currentGoalIndex = goalIndex;
   startState = currentState;
-  whichLearner = learner;
+  whichLearner = *learner;
 
-  return learner;
+  return goals[goalIndex];
 }
 
 
-int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState, goal* selectedGoal){
+int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
   // select a goal at random
   int goalIndex = -1;
   bool goalValid = false;
+  goal* selectedGoal;
 
   // randomly select goals until we find one that is valid from the current state
   while (!goalValid){
@@ -240,10 +241,10 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState, g
 }
       
 
-int EffectSpaceGoalSelector::selectCompetenceProgressGoal(std::vector<float> currentState, goal* selectedGoal){
+int EffectSpaceGoalSelector::selectCompetenceProgressGoal(std::vector<float> currentState){
   // TODO
   cout << endl << "ERROR: Competence Progress SAGG-RIAC goal selection not implemented yet!" << endl << endl;
-  return selectRandomGoal(currentState, selectedGoal);
+  return selectRandomGoal(currentState);
 }
 
 
@@ -272,6 +273,8 @@ int EffectSpaceGoalSelector::chooseHighCompetenceLearner(int goalIndex){
 
 
 void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
+  if (GOALDEBUG) cout << endl << currentGoalIndex << " complete. " << endl;
+
   // figure out distance to goal achieved
   float dist = calculateDistance(finalState);
 
