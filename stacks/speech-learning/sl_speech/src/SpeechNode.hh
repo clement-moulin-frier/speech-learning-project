@@ -39,7 +39,7 @@ int goalFrom = 0;
 int goalIndex = -1;
 
 int tryThresh = 10; // how many times we should try a speech
-int successThresh = 9; // how successful does it need to be?
+float minRate = 0.85; // how successful does it need to be?
 
 struct goalInfo {
   std::vector<float> goal;

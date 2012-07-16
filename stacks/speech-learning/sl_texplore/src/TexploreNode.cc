@@ -243,7 +243,7 @@ int main(int argc, char *argv[])
     {"actrate", 1, 0, 'a'},
     {"v", 1, 0, 'v'},
     {"n", 1, 0, 'n'},
-    {"master", 1, 0, 'm'},
+    {"master", 0, 0, 'm'},
     {"seed", 1, 0, 'x'},
     {"prints", 0, 0, 'p'},
     {"help", 0, 0, 'h'}
