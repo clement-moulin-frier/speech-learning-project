@@ -45,9 +45,6 @@ void selectGoal(){
   int learner = -1;
   currentGoal = selector->selectGoal(lastState, &learner);
 
-  // send appropriate message (not eval mode)
-  currentGoal.goalMsg.evaluateOnly = false;
-
   // send to correct learner
   if (learner == EffectSpaceGoalSelector::TexploreLearner){
     out_goal_tex.publish(currentGoal.goalMsg);

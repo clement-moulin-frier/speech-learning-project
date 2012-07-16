@@ -19,6 +19,8 @@ EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, cons
 
   GOALDEBUG = debug;
   GOALSELECTDEBUG = true;
+  evalMode = false;
+  lastEvalGoal = -1;
 
   initGoals();
   initOutputFiles();
@@ -198,6 +200,21 @@ void EffectSpaceGoalSelector::initGoals(){
 
 EffectSpaceGoalSelector::goal EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, int* learner){
 
+  cout << "nGoals: " << nGoalsTried << endl;
+  if (nGoalsTried % 10 == 0 && lastEvalGoal < nGoalsTried){
+    int goalIndex = evaluateGoals();
+    *learner = TexploreLearner;
+    currentGoalIndex = goalIndex;
+    startState = currentState;
+    whichLearner = *learner;
+    goals[goalIndex].goalMsg.evaluateOnly = true;
+    if (GOALDEBUG){
+      cout << "Selected goal " << goalIndex << ": ";
+      printGoal(&(goals[goalIndex]));
+    }
+    return goals[goalIndex];
+  }
+
   if (GOALDEBUG){
     cout << endl << "Select goal from state: ";
     for (unsigned i = 0; i < currentState.size(); i++){
@@ -228,6 +245,7 @@ EffectSpaceGoalSelector::goal EffectSpaceGoalSelector::selectGoal(std::vector<fl
   currentGoalIndex = goalIndex;
   startState = currentState;
   whichLearner = *learner;
+  goals[goalIndex].goalMsg.evaluateOnly = false;
 
   return goals[goalIndex];
 }
@@ -439,6 +457,10 @@ void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
   // figure out distance to goal achieved
   float dist = calculateDistance(finalState);
 
+  if (evalMode){
+    return updateEval(dist);
+  }
+
   // update reward history for this goal
   goal* currentGoal = &(goals[currentGoalIndex]);
   currentGoal->allRewards.push_back(dist);
@@ -528,19 +550,56 @@ void EffectSpaceGoalSelector::initOutputFiles(){
 
 }
 
-void EffectSpaceGoalSelector::evaluateGoals(){
+
+void EffectSpaceGoalSelector::updateEval(float dist){
+  evalResults[currentEvalGoal] = dist;
+  
+  // done
+  if (currentEvalGoal == 3){
+    evalMode = false;
+    lastEvalGoal = nGoalsTried;
+    (*evalGoal) << lastEvalGoal << "\t" << evalResults[0] << "\t" << evalResults[1] << "\t" << evalResults[2] << "\t" << evalResults[3] << endl;
+  }
+}
+
+int EffectSpaceGoalSelector::evaluateGoals(){
+
+  if (evalResults.size() != 4)
+    evalResults.resize(4, 1.0);
+
+  if (!evalMode){
+    evalMode = true;
+    currentEvalGoal = 0;
+  } 
+  else {
+    currentEvalGoal++;
+  }
+
+  cout << endl << "EVALUATE " << currentEvalGoal << endl << endl;
 
   // lets evaluate a few arbitrary goals
   // agent going to an arbitrary state
   // goal index 2 (for 2 obj, 4 width)
+  if (currentEvalGoal == 0){
+    return 2;
+  }
 
   // agent moving to object 0
   // goal index 36 (for 2 obj, 4 width)
+  else if (currentEvalGoal == 1){
+    return 36;
+  }
 
   // agent moving obj 0 to arbitrary state
   // goal index 66 (for 2 obj, 4 width)
+  else if (currentEvalGoal == 2){
+    return 66;
+  }
 
   // agent moving obj 1 to arbitrary state on far side
   // goal index 156 (for 2 obj, 4 width)
+  else {
+    return 156;
+  }
 
 }

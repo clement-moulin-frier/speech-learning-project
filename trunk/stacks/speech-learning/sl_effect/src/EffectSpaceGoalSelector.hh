@@ -94,8 +94,14 @@ public:
 
   /** For eval. */
   void initOutputFiles();
-  void evaluateGoals();
+  int evaluateGoals();
+  void updateEval(float dist);
+
   ofstream* evalGoal;
+  int currentEvalGoal;
+  std::vector<float> evalResults;
+  bool evalMode;
+  int lastEvalGoal;
 
   bool GOALDEBUG;
   bool GOALSELECTDEBUG;
