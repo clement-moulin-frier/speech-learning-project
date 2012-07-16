@@ -22,6 +22,7 @@ void displayHelp(){
   cout << "--randomlearner (select learner randomly)\n";
   cout << "--texplorelearner (always select texplore as learner)\n";
   cout << "--competencelearner (select learner with highest competence)\n";
+  cout << "--progresslearner (select learner with highest competence progress)\n";
   cout << "--tau value (Compare with competence estimate tau steps ago)\n";
   cout << "--theta value (Average this many values together to estimate competence)\n";
   cout << "--prints (turn on debug printing of actions/states)\n";
@@ -31,9 +32,8 @@ void displayHelp(){
 void processEnvDesc(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
 
   // init the goal selection module
-  selector = new EffectSpaceGoalSelector(envIn->num_objects, envIn->width, envIn->min_state_range, envIn->max_state_range, goalSelect, learnerSelect, tau, theta, rng);
+  selector = new EffectSpaceGoalSelector(envIn->num_objects, envIn->width, envIn->min_state_range, envIn->max_state_range, goalSelect, learnerSelect, tau, theta, PRINTS, rng);
 
-  selector->GOALDEBUG = PRINTS;
 
 }
 
@@ -51,7 +51,10 @@ void selectGoal(){
   if (learner == EffectSpaceGoalSelector::TexploreLearner){
     out_goal_tex.publish(currentGoal.goalMsg);
   } else {
-    out_goal_speech.publish(currentGoal.goalMsg);
+    // TODO: for now, just report back bad results
+    selector->updateGoal(lastState);
+    selectGoal();
+    //out_goal_speech.publish(currentGoal.goalMsg);
   }
 }
 
@@ -94,6 +97,7 @@ int main(int argc, char *argv[])
     {"randomlearner", 0, 0, 'l'},
     {"texplorelearner", 0, 0, 't'},
     {"competencelearner", 0, 0, 'c'},
+    {"progresslearner", 0, 0, 'o'},
     {"tau", 1, 0, 'a'},
     {"theta", 1, 0, 'e'},
     {"seed", 1, 0, 'x'},
@@ -144,6 +148,11 @@ int main(int argc, char *argv[])
       cout << "Select Learner with highest competence" << endl;
       break;
     
+    case 'o':
+      learnerSelect = EffectSpaceGoalSelector::CompProgress;
+      cout << "Select Learner with highest competence progress" << endl;
+      break;
+
     case 'p':
       PRINTS = true;
       break;
