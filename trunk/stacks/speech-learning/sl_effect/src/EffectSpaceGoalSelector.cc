@@ -341,6 +341,8 @@ int EffectSpaceGoalSelector::chooseLearner(int goalIndex){
     learner = rng.bernoulli(0.5);
   } else if (learnerSelect == TexploreOnly){
     learner = TexploreLearner;
+  } else if (learnerSelect == SpeechOnly){
+    learner = SpeechLearner;
   } else if (learnerSelect == Competence){
     learner = chooseHighCompetenceLearner(goalIndex);
   } else if (learnerSelect == CompProgress){

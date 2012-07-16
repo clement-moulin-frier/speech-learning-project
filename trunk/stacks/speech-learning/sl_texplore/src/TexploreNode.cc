@@ -90,7 +90,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
 /** Process a new state message. */
 void processState(const sl_msgs::SLState::ConstPtr &stateIn){
-  if (PRINTS) cout << "Received state message" << endl;
+  //  if (PRINTS) cout << "Received state message" << endl;
   lastState = stateIn->state;
 
   // do nothing if we're not the learner right now
