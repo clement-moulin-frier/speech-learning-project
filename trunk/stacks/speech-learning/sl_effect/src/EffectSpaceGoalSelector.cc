@@ -18,6 +18,7 @@ EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, cons
 {
 
   GOALDEBUG = debug;
+  GOALSELECTDEBUG = true;
 
   initGoals();
 }
@@ -246,39 +247,91 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
       printGoal(selectedGoal);
     }
 
-    goalValid = true;
-    bool goalCheck = false;
-
-    // current state must match start state
-    // and be different from goal state
-    for (unsigned i = 0; i < currentState.size(); i++){
-      // check if start state matches
-      if (selectedGoal->goalMsg.start_mask[i] && selectedGoal->goalMsg.start_state[i] != currentState[i]){
-        if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because feat " << i << " does not match start state" << endl;
-        goalValid = false;
-        break;
-      }
-      // check if we're already at goal
-      if (selectedGoal->goalMsg.goal_mask[i] && selectedGoal->goalMsg.goal_state[i] != currentState[i]){
-        // it's ok, we do differ from goal state in at least this feature
-        goalCheck = true;
-      }
-      if (!goalValid) break;
-    } // loop over features
-    if (!goalCheck){
-      if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because current state already matches goal" << endl;
-      goalValid = false;
-    }
+    goalValid = isGoalValid(currentState, goalIndex);
   }
 
   return goalIndex;
 }
       
 
+
+
 int EffectSpaceGoalSelector::selectCompetenceProgressGoal(std::vector<float> currentState){
-  // TODO
-  cout << endl << "ERROR: Competence Progress SAGG-RIAC goal selection not implemented yet!" << endl << endl;
-  return selectRandomGoal(currentState);
+
+  int bestGoal = -1;
+  float bestProgress = -1;
+  int nTied = 0;
+
+  // go through all goals. find one with highest progress
+  for (unsigned i = 0; i < goals.size(); i++){
+    // check if its valid
+    if (GOALDEBUG){
+      cout << "Goal " << i << ": ";
+      printGoal(&goals[i]);
+    }
+
+    if (!isGoalValid(currentState, i)) continue;
+
+    if (GOALSELECTDEBUG && !GOALDEBUG){
+      cout << "Goal " << i << ": ";
+      printGoal(&goals[i]);
+    }
+
+    // calc competence progress for this goal
+    float progress = calcCompetenceProgress(goals[i].allRewards);
+    if (GOALDEBUG || GOALSELECTDEBUG) 
+      cout << "  Goal " << i << " progress: " << progress << endl;
+
+    if (progress > bestProgress){
+      if (GOALDEBUG) cout << "  NEW BEST Goal " << i << " progress: " << progress << endl;
+      bestProgress = progress;
+      bestGoal = i;
+      nTied = 1;
+    } else if (progress == bestProgress){
+      // randomly select from those with equally best progress
+      nTied++;
+      if (rng.bernoulli(1.0/(float)nTied))
+        bestGoal = i;
+      if (GOALDEBUG) cout << "  TIED " << nTied << " Goal " << i << " progress: " << progress << " best: " << bestGoal << endl;
+    }
+  }
+
+  if (GOALSELECTDEBUG){
+    cout << "Selected goal " << bestGoal << " with progress " << bestProgress << " : ";
+    printGoal(&(goals[bestGoal]));
+    cout << endl;
+  }
+
+  return bestGoal;
+}
+
+
+bool EffectSpaceGoalSelector::isGoalValid(std::vector<float> currentState, int goalIndex){
+  bool atGoalAlready = true;
+  goal* selectedGoal = &(goals[goalIndex]);
+
+  // current state must match start state
+  // and be different from goal state
+  for (unsigned i = 0; i < currentState.size(); i++){
+    // check if start state matches
+    if (selectedGoal->goalMsg.start_mask[i] && selectedGoal->goalMsg.start_state[i] != currentState[i]){
+      if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because feat " << i << " does not match start state" << endl;
+      return false;
+    }
+    // check if we're already at goal
+    if (selectedGoal->goalMsg.goal_mask[i] && selectedGoal->goalMsg.goal_state[i] != currentState[i]){
+      // it's ok, we do differ from goal state in at least this feature
+      atGoalAlready = false;
+    }
+  } // loop over features
+
+  if (atGoalAlready){
+    if (GOALDEBUG) cout << "  Goal " << goalIndex << " not valid because current state already matches goal" << endl;
+    return false;
+  }
+
+  // its a valid goal!
+  return true;
 }
 
 
@@ -329,46 +382,13 @@ int EffectSpaceGoalSelector::chooseCompetenceProgressLearner(int goalIndex){
   // get current average dist, and average from tau steps ago, for each learner
 
   // TODO: what do we do if we don't have enough data yet? return random learner?
-  if (goals[goalIndex].texploreRewards.size() < theta+tau){
-    if (GOALDEBUG) cout << "Only " << goals[goalIndex].texploreRewards.size() << " TEXPLORE results, returning random learner" << endl;
-    return rng.bernoulli(0.5);
-  }
-  if (goals[goalIndex].speechRewards.size() < theta+tau){
-    if (GOALDEBUG) cout << "Only " << goals[goalIndex].speechRewards.size() << " SPEECH results, returning random learner" << endl;
-    return rng.bernoulli(0.5);
-  }
 
-
-  float texploreNow = 0;
-  for (int i = (int)goals[goalIndex].texploreRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].texploreRewards.size() - theta; i--){
-    texploreNow += goals[goalIndex].texploreRewards[i];
-  }
-  texploreNow /= (float)theta;
-
-  float texploreBefore = 0;
-  for (int i = (int)goals[goalIndex].texploreRewards.size()-1-tau; i >= 0 && i >= (int)goals[goalIndex].texploreRewards.size() - theta - tau; i--){
-    texploreBefore += goals[goalIndex].texploreRewards[i];
-  }
-  texploreBefore /= (float)theta;
-
-  float speechNow = 0;
-  for (int i = (int)goals[goalIndex].speechRewards.size()-1; i >= 0 && i >= (int)goals[goalIndex].speechRewards.size() - theta; i--){
-    speechNow += goals[goalIndex].speechRewards[i];
-  }
-  speechNow /= (float)theta;
-
-  float speechBefore = 0;
-  for (int i = (int)goals[goalIndex].speechRewards.size()-1-tau; i >= 0 && i >= (int)goals[goalIndex].speechRewards.size() - theta - tau; i--){
-    speechBefore += goals[goalIndex].speechRewards[i];
-  }
-  speechBefore /= (float)theta;
-
-  float texploreChange = fabs(texploreNow - texploreBefore);
-  float speechChange = fabs(speechNow - speechBefore);
+  float texploreChange = calcCompetenceProgress(goals[goalIndex].texploreRewards);
+  float speechChange = calcCompetenceProgress(goals[goalIndex].speechRewards);
 
   if (GOALDEBUG){
-    cout << "TEXPLORE performance went from " << texploreBefore << " to " << texploreNow << " change: " << texploreChange << endl;
-    cout << "SPEECH performance went from " << speechBefore << " to " << speechNow << " change: " << speechChange << endl;
+    cout << "TEXPLORE performance change: " << texploreChange << endl;
+    cout << "SPEECH performance change: " << speechChange << endl;
   }
 
   if (texploreChange > speechChange)
@@ -378,6 +398,34 @@ int EffectSpaceGoalSelector::chooseCompetenceProgressLearner(int goalIndex){
   else
     return rng.bernoulli(0.5);
 
+}
+
+
+float EffectSpaceGoalSelector::calcCompetenceProgress(std::deque<float> &results){
+  // TODO: what should do in this case with not enough results???
+  if (results.size() < (unsigned) (theta+tau)){
+    if (GOALDEBUG) cout << "  Only " << results.size() << " results. returning max value " << endl;
+    return 10000.0;
+  }
+
+  float now = 0;
+  for (int i = (int)results.size()-1; i >= 0 && i >= (int)results.size() - theta; i--){
+    now += results[i];
+  }
+  now /= (float)theta;
+
+  float before = 0;
+  for (int i = (int)results.size()-1-tau; i >= 0 && i >= (int)results.size() - theta - tau; i--){
+    before += results[i];
+  }
+  before /= (float)theta;
+  
+  float change = fabs(now-before);
+
+  if (GOALDEBUG)
+    cout << "Performance went from " << before << " to " << now << " change: " << change << endl;
+
+  return change;
 }
 
 
