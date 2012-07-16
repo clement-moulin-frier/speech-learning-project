@@ -32,6 +32,7 @@ set(LIBRARY_OUTPUT_PATH ${PROJECT_SOURCE_DIR}/lib)
 
 rosbuild_add_executable(effect
   src/EffectSpaceGoalSelector.cc
+  src/GoalSelectNode.cc
 )
 
 target_link_libraries(effect)

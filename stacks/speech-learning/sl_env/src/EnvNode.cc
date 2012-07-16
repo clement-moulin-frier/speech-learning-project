@@ -191,7 +191,7 @@ int main(int argc, char *argv[])
   ros::TransportHints noDelay = ros::TransportHints().tcpNoDelay(true);
   ros::Subscriber slt_action =  node.subscribe("sl_texplore/action", qDepth, processAction, noDelay);
   ros::Subscriber slt_speech = node.subscribe("sl_texplore/speech", qDepth, processSpeech, noDelay);
-  ros::Subscriber sls_speech = node.subscribe("sl_splearner/speech", qDepth, processSpeech, noDelay);
+  ros::Subscriber sls_speech = node.subscribe("sl_speech/speech", qDepth, processSpeech, noDelay);
 
   // publish env description, first state
   // Setup RL World

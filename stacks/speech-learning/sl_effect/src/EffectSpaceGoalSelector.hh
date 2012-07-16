@@ -12,6 +12,9 @@
 #include <vector>
 #include <deque>
 
+#include <sl_msgs/SLGoal.h>
+
+
 /** Code for to select goals in effect space. */
 class EffectSpaceGoalSelector {
 public:
@@ -23,8 +26,8 @@ public:
       \param featmax max values of each feature
       \param goalSelect how we're selecting goals (0: random, 1: sagg-riac)
       \param learnerSelect how we're choosing learner
-      \param tau Parameter for computing competence progress
-      \param theta Parameter for computing competence progress
+      \param tau Compare with average tau steps ago for computing competence progress
+      \param theta Average this many steps together for computing competence progress
       \param rng Initial state of the random number generator to use*/
   EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
                           const std::vector<float> &featmax, int goalSelect,
@@ -54,14 +57,16 @@ public:
   };
 
   struct goal {
-    std::vector<float> startState;
-    std::vector<bool>  startMask;
-    std::vector<float> goalState;
-    std::vector<bool>  goalMask;
+    // goal message (start and goal states and mask of which features we're interested in)
+    sl_msgs::SLGoal goalMsg;
 
+    // stuff to track performance for this goal
     std::deque<float> allRewards;
     std::deque<float> texploreRewards;
     std::deque<float> speechRewards;
+
+    // helpful for debug
+    std::string goalName;
   };
 
 
@@ -72,6 +77,8 @@ public:
   int selectGoal(std::vector<float> currentState, goal* selectedGoal);
   int selectRandomGoal(std::vector<float> currentState, goal* selectedGoal);
   int selectCompetenceProgressGoal(std::vector<float> currentState, goal* selectedGoal);
+
+  void printGoal(goal* selectedGoal);
 
   void updateGoal(std::vector<float>);
   float calculateDistance(std::vector<float>);
