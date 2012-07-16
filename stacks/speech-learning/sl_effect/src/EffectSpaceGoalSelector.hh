@@ -78,11 +78,13 @@ public:
   goal selectGoal(std::vector<float> currentState, int* learner);
   int selectRandomGoal(std::vector<float> currentState);
   int selectCompetenceProgressGoal(std::vector<float> currentState);
+  bool isGoalValid(std::vector<float> currentState, int goalIndex);
 
   void printGoal(goal* selectedGoal);
 
   void updateGoal(std::vector<float>);
   float calculateDistance(std::vector<float>);
+  float calcCompetenceProgress(std::deque<float> &results);
 
   /** Select a learner */
   int chooseLearner(int goalIndex);
@@ -90,6 +92,7 @@ public:
   int chooseCompetenceProgressLearner(int goalIndex);
 
   bool GOALDEBUG;
+  bool GOALSELECTDEBUG;
 
 protected:
 
