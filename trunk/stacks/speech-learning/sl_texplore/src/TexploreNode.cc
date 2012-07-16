@@ -316,8 +316,8 @@ int main(int argc, char *argv[])
   ros::Subscriber sl_env =  node.subscribe("sl_env/env_description", qDepth, processEnv, noDelay);
   ros::Subscriber sl_state = node.subscribe("sl_env/state", qDepth, processState, noDelay);
   ros::Subscriber sl_goal = node.subscribe("sl_effect/tex_goal", qDepth, processGoal, noDelay);
-  ros::Subscriber sl_speech = node.subscribe("sl_splearner/new_speech", qDepth, processSpeech, noDelay);
-  ros::Subscriber sl_done = node.subscribe("sl_splearner/tex_done", qDepth, processDone, noDelay);
+  ros::Subscriber sl_speech = node.subscribe("sl_speech/new_speech", qDepth, processSpeech, noDelay);
+  ros::Subscriber sl_done = node.subscribe("sl_speech/tex_done", qDepth, processDone, noDelay);
 
 
   ROS_INFO(NODE ": starting main loop");
