@@ -21,6 +21,7 @@ EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, cons
   GOALSELECTDEBUG = true;
 
   initGoals();
+  initOutputFiles();
 }
 
 EffectSpaceGoalSelector::~EffectSpaceGoalSelector() {
@@ -31,6 +32,7 @@ EffectSpaceGoalSelector::~EffectSpaceGoalSelector() {
 
 
 void EffectSpaceGoalSelector::initGoals(){
+  nGoalsTried = 0;
   goal newGoal;
   newGoal.goalMsg.start_state.resize(featmax.size(), 0);
   newGoal.goalMsg.start_mask.resize(featmax.size(), false);
@@ -462,6 +464,8 @@ void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
     exit(-1);
   }
 
+  nGoalsTried++;
+
 }
  
 
@@ -510,4 +514,33 @@ void EffectSpaceGoalSelector::printGoal(goal* sg){
   }
 
   */
+}
+
+
+void EffectSpaceGoalSelector::initOutputFiles(){
+
+  std::string evalFile;
+  ostringstream os(evalFile);
+  os << "eval.goals." << numobjects << "." << width << "." << goalSelect << "." << learnerSelect << ".out";
+  evalFile = os.str();
+
+  evalGoal = new std::ofstream(evalFile.c_str());
+
+}
+
+void EffectSpaceGoalSelector::evaluateGoals(){
+
+  // lets evaluate a few arbitrary goals
+  // agent going to an arbitrary state
+  // goal index 2 (for 2 obj, 4 width)
+
+  // agent moving to object 0
+  // goal index 36 (for 2 obj, 4 width)
+
+  // agent moving obj 0 to arbitrary state
+  // goal index 66 (for 2 obj, 4 width)
+
+  // agent moving obj 1 to arbitrary state on far side
+  // goal index 156 (for 2 obj, 4 width)
+
 }
