@@ -43,6 +43,7 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 
   goal.resize(goalIn->goal_state.size(), 0);
   mask.resize(goalIn->goal_state.size(), false);
+  evalOnly = goalIn->evaluateOnly;
 
   for (unsigned i = 0; i < goal.size(); i++){
     goal[i] = goalIn->goal_state[i];
@@ -122,16 +123,22 @@ void tryNextAction(){
 
   if (goalMatched){
     if (PRINTS) cout << "Reached GOAL!!!" << endl;
-    goalsTried[goalIndex].nSuccess++;
-    // if its a good one, send it to texplore
-    float rate = (float)goalsTried[goalIndex].nSuccess / (float)goalsTried[goalIndex].nTry;
-    if (goalsTried[goalIndex].nTry == tryThresh && rate >= minRate && !goalsTried[goalIndex].sentToTexplore){
-      cout << endl << "Very successful speech with rate: " << rate << ", " << goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
-      sl_msgs::SLSpeech speechMsg;
-      speechMsg.f1 = goalsTried[goalIndex].best_f1;
-      speechMsg.f2 = goalsTried[goalIndex].best_f2;
-      out_speech_tex.publish(speechMsg);
-      goalsTried[goalIndex].sentToTexplore = true;
+    if (!evalOnly) goalsTried[goalIndex].nSuccess++;
+    // if we've done enough evals
+    if (!evalOnly && goalsTried[goalIndex].nTry == tryThresh){
+      
+      // calculate its success rate
+      float rate = (float)goalsTried[goalIndex].nSuccess / (float)goalsTried[goalIndex].nTry;
+      
+      // if its a good one, send it to texplore
+      if (rate >= minRate && !goalsTried[goalIndex].sentToTexplore){
+        cout << endl << "Very successful speech with rate: " << rate << ", " << goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
+        sl_msgs::SLSpeech speechMsg;
+        speechMsg.f1 = goalsTried[goalIndex].best_f1;
+        speechMsg.f2 = goalsTried[goalIndex].best_f2;
+        out_speech_tex.publish(speechMsg);
+        goalsTried[goalIndex].sentToTexplore = true;
+      }
     }
   }
 
@@ -148,18 +155,29 @@ void tryNextAction(){
 
   sl_msgs::SLSpeech speechMsg;
 
+  if (evalOnly){
+     speechMsg.f1 = goalsTried[goalIndex].best_f1;
+     speechMsg.f2 = goalsTried[goalIndex].best_f2;
+     out_speech.publish(speechMsg);
+     return;
+  }
+
+  // see what max rate this one can get is
+  int maxSuccess = goalsTried[goalIndex].nSuccess + (tryThresh - goalsTried[goalIndex].nTry);
+  float maxPossibleRate = (float)maxSuccess / (float)tryThresh;
+  cout << "Currently " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << " Max success is " << maxSuccess << " for a rate " << maxPossibleRate << endl;
+
   // if we've found the best one
   if (goalsTried[goalIndex].sentToTexplore){
     cout << "Try sent speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
   // if we have a hint of a speech that works, and haven't tried x times
-  // try it again
-  else if (goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
+  else if (maxPossibleRate >= minRate && goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
     cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
-  // if we have a hint of a speech that works, and have tried it x times, try nearby speech
+  // have tried one x times already, try nearby speech
   else if (goalsTried[goalIndex].nSuccess > 0){
     cout << "Try speech near occasionally successful one: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
     goalsTried[goalIndex].best_f1 += rng.uniform(-0.2,0.2);
