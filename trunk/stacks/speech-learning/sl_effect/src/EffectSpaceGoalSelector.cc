@@ -41,6 +41,9 @@ void EffectSpaceGoalSelector::initGoals(){
   newGoal.goalMsg.goal_state.resize(featmax.size(), 0);
   newGoal.goalMsg.goal_mask.resize(featmax.size(), false);
 
+  evalIndices.resize(4,0);
+  evalResults.resize(4,0);
+
   // Goal Type 1: Move hand to given x,y location
   for (int i = 0; i < width; i++){
     for (int j = 0; j < width*2; j++){
@@ -57,6 +60,11 @@ void EffectSpaceGoalSelector::initGoals(){
         cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
+
+      // possibly make this one for the eval set
+      if (i == 0 && j == (width-1))
+        evalIndices[0] = goals.size();
+
       goals.push_back(newGoal);
     }
   }
@@ -115,6 +123,11 @@ void EffectSpaceGoalSelector::initGoals(){
         cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
+      
+      // possibly make this one for the eval set
+      if (i == 0 && j == 0)
+        evalIndices[1] = goals.size();
+
       goals.push_back(newGoal);
     }
   }
@@ -190,6 +203,13 @@ void EffectSpaceGoalSelector::initGoals(){
             cout << "Adding goal " << goals.size() << ": ";
             printGoal(&newGoal);
           }
+
+          // possibly make this one for the eval set
+          if (i == 0 && j == 0 && x == width-1 && y == 1)
+            evalIndices[2] = goals.size();
+          if (i == 1 && j == 0 && x == 1 && y == width+1)
+            evalIndices[3] = goals.size();
+
           goals.push_back(newGoal);
         }
       }
@@ -582,31 +602,13 @@ int EffectSpaceGoalSelector::evaluateGoals(){
   int goalIndex = 0;
 
   // lets evaluate a few arbitrary goals
-  // agent going to an arbitrary state
-  // goal index 2 (for 2 obj, 4 width)
-  if (currentEvalGoal == 0){
-    goalIndex = 2;
-  }
+  // eval 0: agent going to an arbitrary state
+  // eval 1: agent moving to obj 0
+  // eval 2: move obj 0 to state on near side
+  // eval 3: move obj 1 to state on far side
+  goalIndex = evalIndices[currentEvalGoal];
 
-  // agent moving to object 0
-  // goal index 36 (for 2 obj, 4 width)
-  else if (currentEvalGoal == 1){
-    goalIndex = 22; //36;
-  }
-
-  // agent moving obj 0 to arbitrary state
-  // goal index 66 (for 2 obj, 4 width)
-  else if (currentEvalGoal == 2){
-    goalIndex = 48; //66;
-  }
-
-  // agent moving obj 1 to arbitrary state on far side
-  // goal index 156 (for 2 obj, 4 width)
-  else {
-    goalIndex = 102; //156;
-  }
-
-  cout << "EVALUATE " << currentEvalGoal << ": ";
+  cout << "EVALUATE " << currentEvalGoal << " (" << goalIndex << "): ";
   printGoal(&(goals[goalIndex]));
   return goalIndex;
 
