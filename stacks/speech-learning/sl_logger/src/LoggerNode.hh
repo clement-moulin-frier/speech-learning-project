@@ -26,7 +26,7 @@ ofstream* speeches = NULL;
 ofstream* evalPerf = NULL;
 ofstream* allPerf = NULL;
 ofstream* texploreSpeeches = NULL;
-std::string filePrefix;
+std::string filePrefix = "test";
 
 // flags to turn on/off logging each of these
 bool logStates = true;
@@ -46,11 +46,12 @@ int nspeeches = 0;
 int ntexspeeches = 0;
 int ntexspeechlearners = 0;
 int evalIndex = 0;
+int ngoalsreached = 0;
 
 // and tracking some other things
 bool lastGoalWasEvalOnly = false;
 std::vector<float> evalResults;
-sl_msgs::SLGoal lastMsg;
+std::deque<sl_msgs::SLGoal> lastMsg;
 int lastGoalID;
 
 int totalGoals = 0;
@@ -60,8 +61,7 @@ void displayHelp();
 void initOutputFiles(int numObjects, int width);
 
 void printVector(ofstream* out, std::vector<float> vec);
-void printVector(ofstream* out, std::vector<bool> vec);
-void printVector(ofstream* out, std::vector<unsigned char> vec);
+void printBoolVector(ofstream* out, std::vector<unsigned char> vec);
 
 
 void processState(const sl_msgs::SLState::ConstPtr &stateIn);

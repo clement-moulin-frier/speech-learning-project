@@ -51,10 +51,10 @@ void EffectSpaceGoalSelector::initGoals(){
       newGoal.goalMsg.goal_mask[1] = true;
       newGoal.goalMsg.goal_state[0] = i;
       newGoal.goalMsg.goal_state[1] = j;
-      newGoal.goalName.clear();
-      ostringstream os(newGoal.goalName);
+      newGoal.goalMsg.title.clear();
+      ostringstream os(newGoal.goalMsg.title);
       os << "Move hand to " << i << ", " << j;
-      newGoal.goalName = os.str();
+      newGoal.goalMsg.title = os.str();
 
       if (GOALDEBUG){
         cout << "Adding goal " << goals.size() << ": ";
@@ -74,6 +74,8 @@ void EffectSpaceGoalSelector::initGoals(){
   for (int i = 0; i < numobjects; i++){
     newGoal.goalMsg.goal_mask.assign(featmax.size(), false);
     newGoal.goalMsg.start_mask.assign(featmax.size(), false);
+    newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
+    newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     newGoal.goalMsg.goal_mask[3+6*i+4] = true;
     newGoal.goalMsg.start_mask[3+6*i+4] = true;
     
@@ -82,12 +84,12 @@ void EffectSpaceGoalSelector::initGoals(){
 
       newGoal.goalMsg.goal_state[3+6*i+4] = 1 - j;
       newGoal.goalMsg.start_state[3+6*i+4] = j;
-      newGoal.goalName.clear();
-      ostringstream os(newGoal.goalName);
+      newGoal.goalMsg.title.clear();
+      ostringstream os(newGoal.goalMsg.title);
       os << "Make object " << i;
       if (newGoal.goalMsg.goal_state[3+6*i+4]) os << " reachable.";
       else os << " UNreachable.";
-      newGoal.goalName = os.str();
+      newGoal.goalMsg.title = os.str();
 
       if (GOALDEBUG){
         cout << "Adding goal " << goals.size() << ": ";
@@ -102,6 +104,8 @@ void EffectSpaceGoalSelector::initGoals(){
   for (int i = 0; i < numobjects; i++){
     newGoal.goalMsg.goal_mask.assign(featmax.size(), false);
     newGoal.goalMsg.start_mask.assign(featmax.size(), false);
+    newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
+    newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about whether we start from obj already reachable or not
     newGoal.goalMsg.start_mask[3+6*i+4] = true;
     newGoal.goalMsg.goal_state[3+6*i+2] = 0;
@@ -112,14 +116,14 @@ void EffectSpaceGoalSelector::initGoals(){
     // start reachable or not
     for (int j = 0; j < 2; j++){
       newGoal.goalMsg.start_state[3+6*i+4] = j;
-      newGoal.goalName.clear();
-      ostringstream os(newGoal.goalName);
+      newGoal.goalMsg.title.clear();
+      ostringstream os(newGoal.goalMsg.title);
       os << "Put hand on ";
       if (newGoal.goalMsg.start_state[3+6*i+4])
         os << "reachable object " << i;
       else
         os << "unreachable object " << i;
-      newGoal.goalName = os.str();
+      newGoal.goalMsg.title = os.str();
 
       if (GOALDEBUG){
         cout << "Adding goal " << goals.size() << ": ";
@@ -139,6 +143,8 @@ void EffectSpaceGoalSelector::initGoals(){
   for (int i = 0; i < numobjects; i++){
     newGoal.goalMsg.goal_mask.assign(featmax.size(), false);
     newGoal.goalMsg.start_mask.assign(featmax.size(), false);
+    newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
+    newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about whether we start from obj already reachable or not
     newGoal.goalMsg.start_mask[3+6*i+4] = true;
     newGoal.goalMsg.goal_mask[3+6*i+5] = true;
@@ -152,8 +158,8 @@ void EffectSpaceGoalSelector::initGoals(){
       for (int k = 0; k < 2; k++){
         newGoal.goalMsg.goal_state[3+6*i+5] = 1 - k;
         newGoal.goalMsg.start_state[3+6*i+5] = k;
-        newGoal.goalName.clear();
-        ostringstream os(newGoal.goalName);
+        newGoal.goalMsg.title.clear();
+        ostringstream os(newGoal.goalMsg.title);
         os << "Put ";
         if (newGoal.goalMsg.start_state[3+6*i+4])
           os << "reachable object " << i;
@@ -163,7 +169,7 @@ void EffectSpaceGoalSelector::initGoals(){
           os << " in hand.";
         else
           os << " down.";
-        newGoal.goalName = os.str();
+        newGoal.goalMsg.title = os.str();
 
         if (GOALDEBUG){
           cout << "Adding goal " << goals.size() << ": ";
@@ -179,6 +185,8 @@ void EffectSpaceGoalSelector::initGoals(){
   for (int i = 0; i < numobjects; i++){
     newGoal.goalMsg.goal_mask.assign(featmax.size(), false);
     newGoal.goalMsg.start_mask.assign(featmax.size(), false);
+    newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
+    newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about starting reachable or not
     newGoal.goalMsg.start_mask[3+6*i+4] = true;
     // and care about final destination 
@@ -193,15 +201,15 @@ void EffectSpaceGoalSelector::initGoals(){
         // start from reachable/unreachable
         for (int j = 0; j < 2; j++){
           newGoal.goalMsg.start_state[3+6*i+4] = j;
-          newGoal.goalName.clear();
-          ostringstream os(newGoal.goalName);
+          newGoal.goalMsg.title.clear();
+          ostringstream os(newGoal.goalMsg.title);
           os << "Put ";
           if (newGoal.goalMsg.start_state[3+6*i+4])
             os << "reachable object " << i;
           else
             os << "unreachable object " << i;
           os << " at loc: " << x << ", " << y;
-          newGoal.goalName = os.str();
+          newGoal.goalMsg.title = os.str();
 
           if (GOALDEBUG){
             cout << "Adding goal " << goals.size() << ": ";
@@ -551,7 +559,7 @@ float EffectSpaceGoalSelector::calculateDistance(std::vector<float> finalState){
 
 void EffectSpaceGoalSelector::printGoal(goal* sg){
 
-  cout << sg->goalName << endl;
+  cout << sg->goalMsg.title << endl;
 
   /*
 

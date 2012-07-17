@@ -32,6 +32,7 @@ void displayHelp(){
 
 
 void processState(const sl_msgs::SLState::ConstPtr &stateIn){
+  if (lastGoalWasEvalOnly) return;
   if (PRINTS) cout << "Print " << nstates << "th state to file" << endl;
 
   // save state to file
@@ -54,30 +55,41 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
     }
   }
 
-  lastMsg = *goalIn;
+  lastMsg.push_back(*goalIn);
+  if (lastMsg.size() > 2) lastMsg.pop_front();
   lastGoalWasEvalOnly = goalIn->evaluateOnly;
   lastGoalID = goalIn->goal_id;
 
   // save goal to goals attempted file
   if (!goalIn->evaluateOnly && goalsSelected){
     *goalsSelected << ngoals << "\t" << goalIn->goal_id << "\t";
-    printVector(goalsSelected, goalIn->goal_mask);
+    printBoolVector(goalsSelected, goalIn->goal_mask);
     printVector(goalsSelected, goalIn->goal_state);
-    printVector(goalsSelected, goalIn->start_mask);
+    printBoolVector(goalsSelected, goalIn->start_mask);
     printVector(goalsSelected, goalIn->start_state);
-    *goalsSelected << endl;
+    *goalsSelected << goalIn->title << endl << flush;
   }
 
-  ngoals++;
+  if (!goalIn->evaluateOnly)
+    ngoals++;
 
 }
 
 void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
   if (PRINTS) cout << "Process result for goal " << resultIn->goal_id << endl;
 
-  // double check
-  if (lastMsg.goal_id != resultIn->goal_id){
-    cout << "ERROR: goal id's do not match: last message: " << lastMsg.goal_id << ", result message: " << resultIn->goal_id << endl;
+  // find which last message matches this goal
+  int goalMsgIndex = -1;
+  for (unsigned i = 0; i < lastMsg.size(); i++){
+    if (lastMsg[i].goal_id == resultIn->goal_id){
+      goalMsgIndex = i;
+      cout << "Goal id matches that of message " << i << endl;
+      break;
+    }
+  }
+  
+  if (goalMsgIndex == -1){
+    cout << "ERROR: goal id's do not match: last message 0: " << lastMsg[0].goal_id << ", last message 1: " << lastMsg[1].goal_id << ", result message: " << resultIn->goal_id << endl;
   }
 
 
@@ -98,13 +110,17 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
 
     // if dist is 0, goal was reached and we want to save it 
     if (resultIn->goal_dist == 0 && goalsReached){
-      *goalsReached << ngoals << "\t" << lastMsg.goal_id << "\t";
-      printVector(goalsReached, lastMsg.goal_mask);
-      printVector(goalsReached, lastMsg.goal_state);
-      printVector(goalsReached, lastMsg.start_mask);
-      printVector(goalsReached, lastMsg.start_state);
-      *goalsReached << endl;
+      *goalsReached << ngoals << "\t" << ngoalsreached << "\t";
+      *goalsReached << lastMsg[goalMsgIndex].goal_id << "\t";
+      printBoolVector(goalsReached, lastMsg[goalMsgIndex].goal_mask);
+      printVector(goalsReached, lastMsg[goalMsgIndex].goal_state);
+      printBoolVector(goalsReached, lastMsg[goalMsgIndex].start_mask);
+      printVector(goalsReached, lastMsg[goalMsgIndex].start_state);
+      *goalsReached << lastMsg[goalMsgIndex].title << endl;
     }
+
+    if (resultIn->goal_dist == 0)
+      ngoalsreached++;
 
     // update performance for this goal
     allResults[resultIn->goal_id] = resultIn->goal_dist;
@@ -121,6 +137,7 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
 
 
 void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
+  if (lastGoalWasEvalOnly) return;
   if (PRINTS) cout << "Log " << nspeeches << " speech called" << endl;
 
   if (speeches){
@@ -133,6 +150,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
 
 void processSpeechFromTexplore(const sl_msgs::SLSpeech::ConstPtr &speechIn){
+  if (lastGoalWasEvalOnly) return;
   if (PRINTS) cout << "TEXPLORE called speech action" << endl;
 
   ntexspeeches++;
@@ -148,8 +166,9 @@ void processSpeechFromTexplore(const sl_msgs::SLSpeech::ConstPtr &speechIn){
 
 
 void processGoalFromTexplore(const sl_msgs::SLGoal::ConstPtr &goalIn){
+  if (lastGoalWasEvalOnly) return;
   if (PRINTS) cout << "TEXPLORE called speech learner" << endl;
-  
+ 
   ntexspeechlearners++;
 
   // save num speeches called by texplore compared with speech learner calls
@@ -167,15 +186,10 @@ void printVector(ofstream* out, std::vector<float> vec){
   }
 }
 
-void printVector(ofstream* out, std::vector<bool> vec){
+void printBoolVector(ofstream* out, std::vector<unsigned char> vec){
   for (unsigned i = 0; i < vec.size(); i++){
-    *out << vec[i] << "\t";
-  }
-}
-
-void printVector(ofstream* out, std::vector<unsigned char> vec){
-  for (unsigned i = 0; i < vec.size(); i++){
-    *out << vec[i] << "\t";
+    if (vec[i]) *out << "1\t";
+    else *out << "0\t";
   }
 }
 
@@ -198,13 +212,13 @@ void initOutputFiles(int numObjects, int width){
 
   // create base prefix
   ostringstream os(filePrefix);
-  os << "." << numObjects << "." << width << ".";
+  os << "speech." << filePrefix << "." << numObjects << "." << width << ".";
   std::string prefix = os.str();
 
   // now add on things appropriately
   if (logStates){
     ostringstream os1(prefix);
-    os1 << "states";
+    os1 << prefix << "states";
     std::string filename = os1.str();
     states = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log states to file: " << filename << endl;
@@ -212,7 +226,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logGoalsSelected){
     ostringstream os1(prefix);
-    os1 << "goals.selected";
+    os1 << prefix << "goals.selected";
     std::string filename = os1.str();
     goalsSelected = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log goals selected to file: " << filename << endl;
@@ -220,7 +234,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logGoalsReached){
     ostringstream os1(prefix);
-    os1 << "goals.reached";
+    os1 << prefix << "goals.reached";
     std::string filename = os1.str();
     goalsReached = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log goals reached to file: " << filename << endl;
@@ -228,7 +242,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logSpeeches){
     ostringstream os1(prefix);
-    os1 << "speeches";
+    os1 << prefix << "speeches";
     std::string filename = os1.str();
     speeches = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log speeches to file: " << filename << endl;
@@ -236,7 +250,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logEvalPerf){
     ostringstream os1(prefix);
-    os1 << "perf.eval";
+    os1 << prefix << "perf.eval";
     std::string filename = os1.str();
     evalPerf = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log performance on eval goals to file: " << filename << endl;
@@ -244,7 +258,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logAllPerf){
     ostringstream os1(prefix);
-    os1 << "perf.all";
+    os1 << prefix << "perf.all";
     std::string filename = os1.str();
     allPerf = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log all performance to file: " << filename << endl;
@@ -252,7 +266,7 @@ void initOutputFiles(int numObjects, int width){
 
   if (logTexploreSpeeches){
     ostringstream os1(prefix);
-    os1 << "texplore.speeches";
+    os1 << prefix << "texplore.speeches";
     std::string filename = os1.str();
     texploreSpeeches = new std::ofstream(filename.c_str());
     if (PRINTS) cout << "Log TEXPLORE speech calls to file: " << filename << endl;
