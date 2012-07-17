@@ -813,47 +813,32 @@ std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &a
 
   //if (modelInfo->transitionProbs.size() == 0)
   nextstate = actualState;
-
-  // if we called the speech learner, small probability it learns to reach goal
-  // Or: model this action just like we model the others
-  /*
-  if (action == speechLearnerAction && rng.bernoulli(0.05)){
-    //    cout << "Called speech learner action, give small prob of reaching goal" << endl;
-    for (unsigned i = 0; i < goalState.size(); i++){
-      if (goalMask[i])
-        nextstate[i] = goalState[i];
-    }
-  }
-
-  // normal next state calculation
-  else
-  */
-  {
+  
+  for (std::map<std::vector<float>, float>::iterator outIt
+         = modelInfo->transitionProbs.begin();
+       outIt != modelInfo->transitionProbs.end(); outIt++){
     
-    for (std::map<std::vector<float>, float>::iterator outIt
-           = modelInfo->transitionProbs.begin();
-         outIt != modelInfo->transitionProbs.end(); outIt++){
-      
-      float prob = (*outIt).second;
-      probSum += prob;
-      if (REALSTATEDEBUG) cout << randProb << ", " << probSum << ", " << prob << endl;
-      
-      if (randProb <= probSum){
-        nextstate = (*outIt).first;
-        if (REALSTATEDEBUG) cout << "selected state " << randProb << ", " << probSum << ", " << prob << endl;
-        break;
-      }
+    float prob = (*outIt).second;
+    probSum += prob;
+    if (REALSTATEDEBUG) cout << randProb << ", " << probSum << ", " << prob << endl;
+    
+    if (randProb <= probSum){
+      nextstate = (*outIt).first;
+      if (REALSTATEDEBUG) cout << "selected state " << randProb << ", " << probSum << ", " << prob << endl;
+      break;
     }
-  }    
+  }   
 
-    // add goal reward
+  // add goal reward
   bool goalMatched = true;
+  // also add up diff in relevant features
+  float featDiff = 0;
   for (unsigned i = 0; i < goalState.size(); i++){
     if (goalMask[i] && goalState[i] != nextstate[i]){
+      featDiff += fabs(goalState[i] - nextstate[i]);
       //if (GOALDEBUG) 
       //cout << "No match on feature " << i << " goal: " << goalState[i] << " actual: " << nextstate[i] << endl;
       goalMatched = false;
-      break;
     } 
   }
   
@@ -865,6 +850,10 @@ std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &a
   else {
     *reward -= 1.0;
   }
+
+  // add small bias on feature difference
+  *reward -= 0.05 * featDiff;
+
 
   if (trackActual){
 
