@@ -273,8 +273,8 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
   }
 
   if (GOALSELECTDEBUG){
-    cout << nGoalsTried << " Selected goal " << bestGoal << " randomly: ";
-    printGoal(&(goals[bestGoal]));
+    cout << nGoalsTried << " Selected goal " << goalIndex << " randomly: ";
+    printGoal(&(goals[goalIndex]));
   }
 
   return goalIndex;
