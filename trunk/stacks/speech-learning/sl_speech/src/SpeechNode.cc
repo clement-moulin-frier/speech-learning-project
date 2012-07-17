@@ -165,21 +165,21 @@ void tryNextAction(){
   // see what max rate this one can get is
   int maxSuccess = goalsTried[goalIndex].nSuccess + (tryThresh - goalsTried[goalIndex].nTry);
   float maxPossibleRate = (float)maxSuccess / (float)tryThresh;
-  cout << "Currently " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << " Max success is " << maxSuccess << " for a rate " << maxPossibleRate << endl;
+  if (PRINTS) cout << "Currently " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << " Max success is " << maxSuccess << " for a rate " << maxPossibleRate << endl;
 
   // if we've found the best one
   if (goalsTried[goalIndex].sentToTexplore){
-    cout << "Try sent speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+    if (PRINTS) cout << "Try sent speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
   // if we have a hint of a speech that works, and haven't tried x times
   else if (maxPossibleRate >= minRate && goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
-    cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+    if (PRINTS) cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
   // have tried one x times already, try nearby speech
   else if (goalsTried[goalIndex].nSuccess > 0){
-    cout << "Try speech near occasionally successful one: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
+    if (PRINTS) cout << "Try speech near occasionally successful one: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
     goalsTried[goalIndex].best_f1 += rng.uniform(-0.2,0.2);
     goalsTried[goalIndex].best_f2 += rng.uniform(-0.2,0.2);
     goalsTried[goalIndex].nSuccess = 1;
@@ -188,7 +188,7 @@ void tryNextAction(){
 
   // no idea, try random speech
   else {
-    cout << "Try random speech" << endl;
+    if (PRINTS) cout << "Try random speech" << endl;
     // sample a random speech sound
     goalsTried[goalIndex].best_f1 = rng.uniform(3, 6.5);
     goalsTried[goalIndex].best_f2 = rng.uniform(2.5, 4);

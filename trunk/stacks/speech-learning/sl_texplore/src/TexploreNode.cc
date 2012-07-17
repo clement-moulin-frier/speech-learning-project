@@ -39,14 +39,14 @@ void publishAction(int action){
   }
   else if (action == numactions && master){
     // calling sagg-riac speech learner
-    if (PRINTS) cout << "TEXPLORE is calling SAGG-RIAC speech learner" << action << endl;
+    if (PRINTS || true) cout << "TEXPLORE is calling SAGG-RIAC speech learner: " << action << endl;
     out_goal.publish(lastGoalMsg);
     // no learning on our side until speech learning is done
     learningActive = false;
   } else {
     // calling one of our saved speeches
     int speechIndex = action - numactions - master;
-    if (PRINTS) cout << "TEXPLORE calling speech action " << speechIndex << ": f1: " << speeches[speechIndex].first << ", " << speeches[speechIndex].second << endl;
+    if (PRINTS || true) cout << "TEXPLORE calling speech action " << speechIndex << ": f1: " << speeches[speechIndex].first << ", " << speeches[speechIndex].second << endl;
     sl_msgs::SLSpeech speechMsg;
     speechMsg.f1 = speeches[speechIndex].first;
     speechMsg.f2 = speeches[speechIndex].second;
@@ -81,7 +81,7 @@ void processSpeech(const sl_msgs::SLSpeech::ConstPtr &speechIn){
   }
 
   speeches.push_back(speech);
-  if (PRINTS){
+  if (PRINTS || true){
     cout << endl << "  Add SPEECH: " << speech.first << ", " << speech.second << " as action " << (numactions + numspeeches + master) << endl;
   }
   numspeeches++;
@@ -138,7 +138,7 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
   }
 
   // print new goal
-  if (PRINTS){
+  if (PRINTS || true){
     cout << "Set goal: " << endl << flush;
     for (unsigned i = 0; i < goal.size(); i++){
       if (mask[i])
