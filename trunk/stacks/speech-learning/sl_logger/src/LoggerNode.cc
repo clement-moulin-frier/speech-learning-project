@@ -81,7 +81,7 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
   for (unsigned i = 0; i < lastMsg.size(); i++){
     if (lastMsg[i].goal_id == resultIn->goal_id){
       goalMsgIndex = i;
-      cout << "Goal id matches that of message " << i << endl;
+      if (PRINTS) cout << "Goal id matches that of message " << i << endl;
       break;
     }
   }

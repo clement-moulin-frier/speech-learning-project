@@ -92,6 +92,7 @@ void EffectSpaceGoalSelector::initGoals(){
         printGoal(&newGoal);
       }
       newGoal.goalMsg.goal_id = goals.size();
+      if (i == 1 && j == 0) evalIndices.push_back(goals.size());
       goals.push_back(newGoal);
     }
   }
