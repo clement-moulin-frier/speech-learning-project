@@ -48,6 +48,7 @@ int ntexspeechlearners = 0;
 int evalIndex = 0;
 int ngoalsreached = 0;
 int nresults = 0;
+int nevalreached = 0;
 
 // and tracking some other things
 bool lastGoalWasEvalOnly = false;
