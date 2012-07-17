@@ -50,6 +50,7 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 
   if (!lastGoalWasEvalOnly && goalIn->evaluateOnly){
     evalIndex = 0;
+    nevalreached = 0;
   }
 
   lastMsg.push_back(*goalIn);
@@ -92,7 +93,8 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
 
   // if we've gotten all eval results, print the line
   if (!lastMsg[goalMsgIndex].evaluateOnly && lastResultWasEvalOnly && evalPerf){
-    *evalPerf << nresults << "\t";
+    float pctReached = (float)nevalreached / (float)evalResults.size();
+    *evalPerf << nresults << "\t" << pctReached << "\t";
     printVector(evalPerf, evalResults);
     *evalPerf << endl;
   }
@@ -105,6 +107,8 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
     else
       evalResults[evalIndex] = resultIn->goal_dist;
     evalIndex++;
+    if (resultIn->goal_dist == 0)
+      nevalreached++;
   }
 
   // normal result..
