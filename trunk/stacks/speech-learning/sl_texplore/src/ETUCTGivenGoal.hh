@@ -107,10 +107,6 @@ public:
   bool evaluationMode;
   void setEvaluationMode(bool eval);
   
-  // and for calling speech learner from here
-  int speechLearnerAction;
-  void setSpeechLearner(int a);
-
 protected:
 
 

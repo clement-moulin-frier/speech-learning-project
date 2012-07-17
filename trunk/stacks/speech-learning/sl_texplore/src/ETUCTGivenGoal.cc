@@ -52,7 +52,6 @@ ETUCTGivenGoal::ETUCTGivenGoal(int numactions, float gamma, float rrange, float 
   goalMask.resize(featmax.size(), false);
 
   // init some other things
-  speechLearnerAction = -1;
   numUsableActions = numactions;
   evaluationMode = false;
 
@@ -856,15 +855,11 @@ std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &a
 
 
   if (trackActual){
-
-
     // find the relative change from discrete center
     std::vector<float> relChange = subVec(nextstate, *discState);
 
     // add that on to actual current state value
     nextstate = addVec(actualState, relChange);
-
-
   }
 
   // check that next state is valid
@@ -1048,12 +1043,6 @@ void ETUCTGivenGoal::setGoal(std::vector<float> goal, std::vector<bool> mask){
 void ETUCTGivenGoal::setUsableActions(int n){
   cout << "Set usable actions as " << n << endl;
   numUsableActions = n;
-}
-
-// set which actoin is the speech learner
-void ETUCTGivenGoal::setSpeechLearner(int a){
-  cout << "Set speech learner as " << a << endl;
-  speechLearnerAction = a;
 }
 
 // set whether we're in eval mode or not

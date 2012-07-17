@@ -220,7 +220,6 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
 
   planner->GOALDEBUG = PRINTS;
 
-  if (master) planner->setSpeechLearner(numactions);
   planner->setUsableActions(numactions+master);
 
 }
