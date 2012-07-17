@@ -65,6 +65,7 @@ void EffectSpaceGoalSelector::initGoals(){
       if (i == 0 && j == (width-1))
         evalIndices[0] = goals.size();
 
+      newGoal.goalMsg.goal_id = goals.size();
       goals.push_back(newGoal);
     }
   }
@@ -92,6 +93,7 @@ void EffectSpaceGoalSelector::initGoals(){
         cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
+      newGoal.goalMsg.goal_id = goals.size();
       goals.push_back(newGoal);
     }
   }
@@ -128,6 +130,7 @@ void EffectSpaceGoalSelector::initGoals(){
       if (i == 0 && j == 0)
         evalIndices[1] = goals.size();
 
+      newGoal.goalMsg.goal_id = goals.size();
       goals.push_back(newGoal);
     }
   }
@@ -166,6 +169,7 @@ void EffectSpaceGoalSelector::initGoals(){
           cout << "Adding goal " << goals.size() << ": ";
           printGoal(&newGoal);
         }
+        newGoal.goalMsg.goal_id = goals.size();
         goals.push_back(newGoal);
       }
     }
@@ -210,6 +214,7 @@ void EffectSpaceGoalSelector::initGoals(){
           if (i == 1 && j == 0 && x == 1 && y == width+1)
             evalIndices[3] = goals.size();
 
+          newGoal.goalMsg.goal_id = goals.size();
           goals.push_back(newGoal);
         }
       }
@@ -472,14 +477,15 @@ float EffectSpaceGoalSelector::calcCompetenceProgress(std::deque<float> &results
 }
 
 
-void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
+float EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
   if (GOALDEBUG) cout << "Goal " << currentGoalIndex << " attempt complete. " << endl;
 
   // figure out distance to goal achieved
   float dist = calculateDistance(finalState);
 
   if (evalMode){
-    return updateEval(dist);
+    updateEval(dist);
+    return dist;
   }
 
   // update reward history for this goal
@@ -509,6 +515,7 @@ void EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
 
   nGoalsTried++;
 
+  return dist;
 }
  
 

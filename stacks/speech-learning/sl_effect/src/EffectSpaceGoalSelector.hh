@@ -83,7 +83,7 @@ public:
 
   void printGoal(goal* selectedGoal);
 
-  void updateGoal(std::vector<float>);
+  float updateGoal(std::vector<float>);
   float calculateDistance(std::vector<float>);
   float calcCompetenceProgress(std::deque<float> &results);
 
