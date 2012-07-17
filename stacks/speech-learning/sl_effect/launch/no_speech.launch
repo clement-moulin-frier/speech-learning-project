@@ -30,7 +30,7 @@
 	<node pkg="sl_texplore" type="texplore" name="texplore" args="--nsteps $(arg ntexsteps) --actrate $(arg actrate) --seed $(arg seed)"></node>
 
   <!-- Logging node -->   
-	<node pkg="sl_logger" type="logger" name="logger" args="--filename no_speech.$(arg theta).$(arg tau).$(arg ntexsteps).$(arg actrate)"></node>
+	<node pkg="sl_logger" type="logger" name="logger" args="--filename no_speech.$(arg theta).$(arg tau).$(arg ntexsteps).$(arg actrate).$(arg seed)"></node>
 
   <!-- Env node -->
   <node pkg="sl_env" type="env" name="env" args="--nobjects $(arg nobjects) --width $(arg width) --seed $(arg seed)"></node>

@@ -33,7 +33,7 @@
 	<node pkg="sl_speech" type="speech" name="speech" args="--nsteps $(arg nspeeches) --ntest $(arg ntest) --rate $(arg rate) --seed $(arg seed)"></node>
 
   <!-- Logging node -->   
-	<node pkg="sl_logger" type="logger" name="logger" args="--filename normal.$(arg theta).$(arg tau).$(arg ntexsteps).$(arg actrate).$(arg nspeeches).$(arg ntest).$(arg rate)"></node>
+	<node pkg="sl_logger" type="logger" name="logger" args="--filename normal.$(arg theta).$(arg tau).$(arg ntexsteps).$(arg actrate).$(arg nspeeches).$(arg ntest).$(arg rate).$(arg seed)"></node>
 
   <!-- Env node -->
   <node pkg="sl_env" type="env" name="env" args="--nobjects $(arg nobjects) --width $(arg width) --seed $(arg seed)"></node>
