@@ -28,10 +28,13 @@ public:
       \param learnerSelect how we're choosing learner
       \param tau Compare with average tau steps ago for computing competence progress
       \param theta Average this many steps together for computing competence progress
+      \param evalFreq Frequency to run evals on hand-picked goal set 
+      \param debug debug prints on/off
       \param rng Initial state of the random number generator to use*/
   EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
                           const std::vector<float> &featmax, int goalSelect,
                           int learnerSelect, int tau, int theta, bool debug,
+                          int evalFreq,
                           Random rng = Random());
   
   /** Unimplemented copy constructor: internal state cannot be simply
@@ -91,13 +94,10 @@ public:
   int chooseCompetenceProgressLearner(int goalIndex);
 
   /** For eval. */
-  void initOutputFiles();
   int evaluateGoals();
   void updateEval(float dist);
 
-  ofstream* evalGoal;
   int currentEvalGoal;
-  std::vector<float> evalResults;
   std::vector<int> evalIndices;
   bool evalMode;
   int lastEvalGoal;
@@ -126,6 +126,7 @@ private:
   const int learnerSelect;
   const int tau;
   const int theta;
+  const int evalFreq;
 
   Random rng;
 

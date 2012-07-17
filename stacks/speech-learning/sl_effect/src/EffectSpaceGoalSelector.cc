@@ -10,11 +10,11 @@
 
 EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
                                                  const std::vector<float> &featmax, int goalSelect,
-                                                 int learnerSelect, int tau, int theta, bool debug,
+                                                 int learnerSelect, int tau, int theta, bool debug, int evalFreq,
                                                  Random rng):
   numobjects(numobjects), width(width), featmin(featmin), featmax(featmax),
   goalSelect(goalSelect), learnerSelect(learnerSelect), 
-  tau(tau), theta(theta), rng(rng)
+  tau(tau), theta(theta), evalFreq(evalFreq), rng(rng)
 {
 
   GOALDEBUG = debug;
@@ -23,7 +23,6 @@ EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, cons
   lastEvalGoal = -1;
 
   initGoals();
-  initOutputFiles();
 }
 
 EffectSpaceGoalSelector::~EffectSpaceGoalSelector() {
@@ -40,9 +39,6 @@ void EffectSpaceGoalSelector::initGoals(){
   newGoal.goalMsg.start_mask.resize(featmax.size(), false);
   newGoal.goalMsg.goal_state.resize(featmax.size(), 0);
   newGoal.goalMsg.goal_mask.resize(featmax.size(), false);
-
-  evalIndices.resize(4,0);
-  evalResults.resize(4,0);
 
   // Goal Type 1: Move hand to given x,y location
   for (int i = 0; i < width; i++){
@@ -63,7 +59,7 @@ void EffectSpaceGoalSelector::initGoals(){
 
       // possibly make this one for the eval set
       if (i == 0 && j == (width-1))
-        evalIndices[0] = goals.size();
+        evalIndices.push_back(goals.size());
 
       newGoal.goalMsg.goal_id = goals.size();
       goals.push_back(newGoal);
@@ -132,7 +128,7 @@ void EffectSpaceGoalSelector::initGoals(){
       
       // possibly make this one for the eval set
       if (i == 0 && j == 0)
-        evalIndices[1] = goals.size();
+        evalIndices.push_back(goals.size());
 
       newGoal.goalMsg.goal_id = goals.size();
       goals.push_back(newGoal);
@@ -218,9 +214,9 @@ void EffectSpaceGoalSelector::initGoals(){
 
           // possibly make this one for the eval set
           if (i == 0 && j == 0 && x == width-1 && y == 1)
-            evalIndices[2] = goals.size();
+            evalIndices.push_back(goals.size());
           if (i == 1 && j == 0 && x == 1 && y == width+1)
-            evalIndices[3] = goals.size();
+            evalIndices.push_back(goals.size());
 
           newGoal.goalMsg.goal_id = goals.size();
           goals.push_back(newGoal);
@@ -236,7 +232,7 @@ void EffectSpaceGoalSelector::initGoals(){
 
 EffectSpaceGoalSelector::goal EffectSpaceGoalSelector::selectGoal(std::vector<float> currentState, int* learner){
 
-  if (nGoalsTried % 25 == 0 && lastEvalGoal < nGoalsTried){
+  if (nGoalsTried % evalFreq == 0 && lastEvalGoal < nGoalsTried){
     int goalIndex = evaluateGoals();
     *learner = chooseLearner(goalIndex);
     currentGoalIndex = goalIndex;
@@ -578,33 +574,15 @@ void EffectSpaceGoalSelector::printGoal(goal* sg){
 }
 
 
-void EffectSpaceGoalSelector::initOutputFiles(){
-
-  std::string evalFile;
-  ostringstream os(evalFile);
-  os << "eval.goals." << numobjects << "." << width << "." << goalSelect << "." << learnerSelect << ".out";
-  evalFile = os.str();
-
-  evalGoal = new std::ofstream(evalFile.c_str());
-
-}
-
-
 void EffectSpaceGoalSelector::updateEval(float dist){
-  evalResults[currentEvalGoal] = dist;
-  
   // done
-  if (currentEvalGoal == 3){
+  if (currentEvalGoal == (evalIndices.size()-1)){
     evalMode = false;
     lastEvalGoal = nGoalsTried;
-    (*evalGoal) << lastEvalGoal << "\t" << evalResults[0] << "\t" << evalResults[1] << "\t" << evalResults[2] << "\t" << evalResults[3] << endl;
   }
 }
 
 int EffectSpaceGoalSelector::evaluateGoals(){
-
-  if (evalResults.size() != 4)
-    evalResults.resize(4, 1.0);
 
   if (!evalMode){
     evalMode = true;
