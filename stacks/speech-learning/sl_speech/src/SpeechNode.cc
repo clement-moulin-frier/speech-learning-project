@@ -12,7 +12,7 @@ void displayHelp(){
   cout << "\n Options:\n";
   cout << "--seed value (integer seed for random number generator)\n";
   cout << "--nsteps (how many speeches it can attempt to reach goal)\n";
-  cout << "--ntries (num times to try a speech to evaluate it)\n";
+  cout << "--ntest (num times to try a speech to evaluate it)\n";
   cout << "--rate (what success rate we must achieve to send to texplore)\n";
   cout << "--prints (turn on debug printing of actions/states)\n";
   exit(-1);
@@ -236,7 +236,7 @@ int main(int argc, char *argv[])
   int option_index = 0;
   static struct option long_options[] = {
     {"nsteps", 1, 0, 's'},
-    {"ntries", 1, 0, 't'},
+    {"ntest", 1, 0, 't'},
     {"rate", 1, 0, 'r'},
     {"seed", 1, 0, 'x'},
     {"prints", 0, 0, 'p'},

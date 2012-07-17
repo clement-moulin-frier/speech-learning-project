@@ -1,19 +1,36 @@
  <!-- launch file for no texplore learner (can only reach speech goals) -->
  <launch>
 
-  <!-- default is 3 objects and a 5x10 table -->
-  <arg name="nobjects" default="3"/> 
-  <arg name="width" default="5"/>
   <arg name="seed" default="1"/>
 
+  <!-- Env params: default is 3 objects and a 5x10 table -->
+  <arg name="nobjects" default="3"/> 
+  <arg name="width" default="5"/>
+
+  <!-- effect space learner param -->
+  <arg name="evalfreq" default="25"/>
+  <arg name="theta" default="3"/>
+  <arg name="tau" default="2"/>
+
+  <!-- TEXPLORE params -->
+  <arg name="ntexsteps" default="15"/>
+  <arg name="actrate" default="15"/>
+
+  <!-- Speech learner params -->
+  <arg name="nspeeches" default="15"/>
+  <arg name="ntest" default="4"/>
+  <arg name="rate" default="0.74"/>
+
+
+
   <!-- effect space goal selection -->   
-	<node pkg="sl_effect" type="effect" name="effect" args="--progressgoal --speechlearner --seed $(arg seed)"></node>
+	<node pkg="sl_effect" type="effect" name="effect" args="--progressgoal --speechlearner --evalfreq $(arg evalfreq) --theta $(arg theta) --tau $(arg tau) --seed $(arg seed)"></node>
 
   <!-- SPEECH learner -->   
-	<node pkg="sl_speech" type="speech" name="speech" args="--seed $(arg seed)"></node>
+	<node pkg="sl_speech" type="speech" name="speech" args="--nsteps $(arg nspeeches) --ntest $(arg ntest) --rate $(arg rate) --seed $(arg seed)"></node>
 
   <!-- Logging node -->   
-	<node pkg="sl_logger" type="logger" name="logger"></node>
+	<node pkg="sl_logger" type="logger" name="logger" args="--filename no_texplore.$(arg theta).$(arg tau).$(arg nspeeches).$(arg ntest).$(arg rate)"></node>
 
   <!-- Env node -->
   <node pkg="sl_env" type="env" name="env" args="--nobjects $(arg nobjects) --width $(arg width) --seed $(arg seed)"></node>
