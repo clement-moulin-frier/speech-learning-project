@@ -19,10 +19,10 @@ using namespace std;
 
 
 // possible outputs
-ofstream* statesOut = NULL;
+ofstream* states = NULL;
 ofstream* goalsSelected = NULL;
 ofstream* goalsReached = NULL;
-ofstream* speechesTried = NULL;
+ofstream* speeches = NULL;
 ofstream* evalPerf = NULL;
 ofstream* allPerf = NULL;
 ofstream* texploreSpeeches = NULL;
@@ -43,15 +43,26 @@ bool PRINTS = false;
 int ngoals = 0;
 int nstates = 0;
 int nspeeches = 0;
-int nevalgoals = 0;
 int ntexspeeches = 0;
 int ntexspeechlearners = 0;
+int evalIndex = 0;
 
+// and tracking some other things
 bool lastGoalWasEvalOnly = false;
 std::vector<float> evalResults;
+sl_msgs::SLGoal lastMsg;
+int lastGoalID;
+
+int totalGoals = 0;
+std::vector<float> allResults;
 
 void displayHelp();
-void initOutputFiles();
+void initOutputFiles(int numObjects, int width);
+
+void printVector(ofstream* out, std::vector<float> vec);
+void printVector(ofstream* out, std::vector<bool> vec);
+void printVector(ofstream* out, std::vector<unsigned char> vec);
+
 
 void processState(const sl_msgs::SLState::ConstPtr &stateIn);
 void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn);
