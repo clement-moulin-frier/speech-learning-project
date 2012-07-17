@@ -47,9 +47,11 @@ int ntexspeeches = 0;
 int ntexspeechlearners = 0;
 int evalIndex = 0;
 int ngoalsreached = 0;
+int nresults = 0;
 
 // and tracking some other things
 bool lastGoalWasEvalOnly = false;
+bool lastResultWasEvalOnly = false;
 std::vector<float> evalResults;
 std::deque<sl_msgs::SLGoal> lastMsg;
 int lastGoalID;

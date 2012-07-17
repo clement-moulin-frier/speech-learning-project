@@ -33,10 +33,11 @@ Random rng;
 bool PRINTS = false;//true;
 
 // default parameters
-int goalSelect = EffectSpaceGoalSelector::RandomGoal;
-int learnerSelect = EffectSpaceGoalSelector::TexploreOnly;
+int goalSelect = EffectSpaceGoalSelector::SaggRiac;
+int learnerSelect = EffectSpaceGoalSelector::Competence;
 int tau = 2;
 int theta = 3; // although domain is stochastic, taking n-steps to reach goal should be achievable deterministically
+int evalFreq = 25;
 
 void displayHelp();
 void processState(const sl_msgs::SLState::ConstPtr &stateIn);

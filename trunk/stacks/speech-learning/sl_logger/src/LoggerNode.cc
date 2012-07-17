@@ -50,9 +50,6 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 
   if (!lastGoalWasEvalOnly && goalIn->evaluateOnly){
     evalIndex = 0;
-    if (evalResults.size() != 4){
-      evalResults.resize(4, 1);
-    }
   }
 
   lastMsg.push_back(*goalIn);
@@ -76,7 +73,7 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
 }
 
 void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
-  if (PRINTS) cout << "Process result for goal " << resultIn->goal_id << endl;
+  if (PRINTS) cout << "Process " << nresults << "th result for goal " << resultIn->goal_id << endl;
 
   // find which last message matches this goal
   int goalMsgIndex = -1;
@@ -93,24 +90,30 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
   }
 
 
+  // if we've gotten all eval results, print the line
+  if (!lastMsg[goalMsgIndex].evaluateOnly && lastResultWasEvalOnly && evalPerf){
+    *evalPerf << nresults << "\t";
+    printVector(evalPerf, evalResults);
+    *evalPerf << endl;
+  }
+  
   // if eval, then its special
-  if (lastGoalWasEvalOnly){
-    evalResults[evalIndex] = resultIn->goal_dist;
+  if (lastMsg[goalMsgIndex].evaluateOnly){
+    lastResultWasEvalOnly = true;
+    if (evalResults.size() < (1+evalIndex))
+      evalResults.push_back(resultIn->goal_dist);
+    else
+      evalResults[evalIndex] = resultIn->goal_dist;
     evalIndex++;
-    // if we've gotten them all, print the line
-    if (evalIndex == 4 && evalPerf){
-      *evalPerf << ngoals << "\t";
-      printVector(evalPerf, evalResults);
-      *evalPerf << endl;
-    }
   }
 
   // normal result..
   else {
+    lastResultWasEvalOnly = false;
 
     // if dist is 0, goal was reached and we want to save it 
     if (resultIn->goal_dist == 0 && goalsReached){
-      *goalsReached << ngoals << "\t" << ngoalsreached << "\t";
+      *goalsReached << nresults << "\t" << ngoalsreached << "\t";
       *goalsReached << lastMsg[goalMsgIndex].goal_id << "\t";
       printBoolVector(goalsReached, lastMsg[goalMsgIndex].goal_mask);
       printVector(goalsReached, lastMsg[goalMsgIndex].goal_state);
@@ -127,12 +130,14 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
 
     // and save updated results to file
     if (allPerf){
-      *allPerf << ngoals << "\t";
+      *allPerf << nresults << "\t";
       printVector(allPerf, allResults);
       *allPerf << endl;
     }
     
+    nresults++;
   }
+
 }
 
 

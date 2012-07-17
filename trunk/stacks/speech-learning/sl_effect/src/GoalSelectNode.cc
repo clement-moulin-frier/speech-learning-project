@@ -26,6 +26,7 @@ void displayHelp(){
   cout << "--progresslearner (select learner with highest competence progress)\n";
   cout << "--tau value (Compare with competence estimate tau steps ago)\n";
   cout << "--theta value (Average this many values together to estimate competence)\n";
+  cout << "--evalfreq (how often to evaluate hand-picked goal performance)\n";
   cout << "--prints (turn on debug printing of actions/states)\n";
   exit(-1);
 }
@@ -33,7 +34,7 @@ void displayHelp(){
 void processEnvDesc(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
 
   // init the goal selection module
-  selector = new EffectSpaceGoalSelector(envIn->num_objects, envIn->width, envIn->min_state_range, envIn->max_state_range, goalSelect, learnerSelect, tau, theta, PRINTS, rng);
+  selector = new EffectSpaceGoalSelector(envIn->num_objects, envIn->width, envIn->min_state_range, envIn->max_state_range, goalSelect, learnerSelect, tau, theta, PRINTS, evalFreq, rng);
 
 
 }
@@ -103,6 +104,7 @@ int main(int argc, char *argv[])
     {"progresslearner", 0, 0, 'o'},
     {"tau", 1, 0, 'a'},
     {"theta", 1, 0, 'e'},
+    {"evalfreq", 1, 0, 'f'},
     {"seed", 1, 0, 'x'},
     {"prints", 0, 0, 'p'},
     {"help", 0, 0, 'h'}
@@ -110,6 +112,11 @@ int main(int argc, char *argv[])
 
   while(-1 != (ch = getopt_long_only(argc, argv, optflags, long_options, &option_index))) {
     switch(ch) {
+
+    case 'f':
+      evalFreq = std::atoi(optarg);
+      cout << "Evaluation frequency: " << evalFreq << endl;
+      break;
 
     case 'x':
       seed = std::atoi(optarg);
