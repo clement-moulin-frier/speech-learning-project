@@ -68,3 +68,4 @@ void processGoalFromTexplore(const sl_msgs::SLGoal::ConstPtr &goalIn);
 int main(int argc, char *argv[]);
 
 void tryNextAction();
+void evaluateLastSpeech();

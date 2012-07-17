@@ -65,6 +65,7 @@ void processGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
   tryNextAction();
 }
 
+/** Attempt to match this goal to one we've already tried. */
 int matchGoal(const sl_msgs::SLGoal::ConstPtr &goalIn){
   for (unsigned i = 0; i < goalsTried.size(); i++){
     bool possibleMatch = true;
@@ -104,11 +105,11 @@ void processState(const sl_msgs::SLState::ConstPtr &stateIn){
   // do nothing if we're not the learner right now
   if (!learningActive) return;
   
-  tryNextAction();
+  evaluateLastSpeech();
 }
 
-void tryNextAction(){
 
+void evaluateLastSpeech(){
   istep++;
   
   // check if we're at the goal, or have reached the maximum number of steps
@@ -123,16 +124,18 @@ void tryNextAction(){
 
   if (goalMatched){
     if (PRINTS) cout << "Reached GOAL!!!" << endl;
-    if (!evalOnly) goalsTried[goalIndex].nSuccess++;
-    // if we've done enough evals
-    if (!evalOnly && goalsTried[goalIndex].nTry == tryThresh){
-      
-      // calculate its success rate
-      float rate = (float)goalsTried[goalIndex].nSuccess / (float)goalsTried[goalIndex].nTry;
+
+    // see if this one is successful enough to send to texplore
+    if (!evalOnly){
+      goalsTried[goalIndex].nSuccess++;
+
+      // whats min rate we will achieve
+      float rate = (float)goalsTried[goalIndex].nSuccess / (float)tryThresh;
       
       // if its a good one, send it to texplore
       if (rate >= minRate && !goalsTried[goalIndex].sentToTexplore){
-        cout << endl << "Very successful speech with rate: " << rate << ", " << goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
+        
+        cout << endl << "Sending good speech with rate: " << rate << ", " << goalsTried[goalIndex].nSuccess << " / " <<  goalsTried[goalIndex].nTry << endl << endl;
         sl_msgs::SLSpeech speechMsg;
         speechMsg.f1 = goalsTried[goalIndex].best_f1;
         speechMsg.f2 = goalsTried[goalIndex].best_f2;
@@ -153,8 +156,17 @@ void tryNextAction(){
     return;
   }
 
+  // if not done with this goal attempt
+  tryNextAction();
+}
+
+
+
+void tryNextAction(){
+
   sl_msgs::SLSpeech speechMsg;
 
+  // eval mode, just sent speech associated with this goal
   if (evalOnly){
      speechMsg.f1 = goalsTried[goalIndex].best_f1;
      speechMsg.f2 = goalsTried[goalIndex].best_f2;
@@ -167,17 +179,17 @@ void tryNextAction(){
   float maxPossibleRate = (float)maxSuccess / (float)tryThresh;
   if (PRINTS) cout << "Currently " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << " Max success is " << maxSuccess << " for a rate " << maxPossibleRate << endl;
 
-  // if we've found the best one
+  // if we've already decided on one
   if (goalsTried[goalIndex].sentToTexplore){
     if (PRINTS) cout << "Try sent speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
-  // if we have a hint of a speech that works, and haven't tried x times
+  // this one may meet rate thresh, but needs more attempts
   else if (maxPossibleRate >= minRate && goalsTried[goalIndex].nSuccess > 0 && goalsTried[goalIndex].nTry < tryThresh){
     if (PRINTS) cout << "Try best known speech with success rate: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
   }
 
-  // have tried one x times already, try nearby speech
+  // this one had a success, but wont meet rate thresh, try nearby one
   else if (goalsTried[goalIndex].nSuccess > 0){
     if (PRINTS) cout << "Try speech near occasionally successful one: " << goalsTried[goalIndex].nSuccess << " / " << goalsTried[goalIndex].nTry << endl;
     goalsTried[goalIndex].best_f1 += rng.uniform(-0.2,0.2);
@@ -204,7 +216,8 @@ void tryNextAction(){
   
   // TODO: note, not doing anything smart here, just random sampling
   // TODO: and no attempt to actually create this sound with vocal tract
-  // TODO: also need to decide if we should add this speech to TEXPLORE
+  // TODO: no generalization across goals
+  // TODO: and no looking at effects of speeches, if goal not achieved
   out_speech.publish(speechMsg);
 
 }
