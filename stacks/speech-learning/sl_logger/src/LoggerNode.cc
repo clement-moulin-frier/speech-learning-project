@@ -130,11 +130,20 @@ void processResult(const sl_msgs::SLResult::ConstPtr &resultIn){
       ngoalsreached++;
 
     // update performance for this goal
+    if (allResults[resultIn->goal_id] == 0 && resultIn->goal_dist != 0){
+      // no longer reaching this goal
+      totalGoalsReached--;
+    }
+    else if (allResults[resultIn->goal_id] != 0 && resultIn->goal_dist == 0){
+      // suddenly we can reach this goal
+      totalGoalsReached++;
+    }
     allResults[resultIn->goal_id] = resultIn->goal_dist;
 
     // and save updated results to file
     if (allPerf){
-      *allPerf << nresults << "\t";
+      float pctReached = (float)totalGoalsReached/(float)totalGoals;
+      *allPerf << nresults << "\t" << pctReached << "\t";
       printVector(allPerf, allResults);
       *allPerf << endl;
     }

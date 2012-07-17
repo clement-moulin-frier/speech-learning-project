@@ -59,6 +59,7 @@ int lastGoalID;
 
 int totalGoals = 0;
 std::vector<float> allResults;
+int totalGoalsReached = 0;
 
 void displayHelp();
 void initOutputFiles(int numObjects, int width);
