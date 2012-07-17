@@ -100,6 +100,7 @@ public:
   ofstream* evalGoal;
   int currentEvalGoal;
   std::vector<float> evalResults;
+  std::vector<int> evalIndices;
   bool evalMode;
   int lastEvalGoal;
 
