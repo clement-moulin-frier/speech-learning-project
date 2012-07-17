@@ -67,8 +67,6 @@ public:
     std::deque<float> texploreRewards;
     std::deque<float> speechRewards;
 
-    // helpful for debug
-    std::string goalName;
   };
 
 

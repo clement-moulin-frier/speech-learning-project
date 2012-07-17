@@ -12,4 +12,6 @@ bool evaluateOnly
 
 # for debug/logging
 int32 goal_id
+string title
+
 
