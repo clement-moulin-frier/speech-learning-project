@@ -5,6 +5,7 @@
 #include <sl_msgs/SLState.h>
 #include <sl_msgs/SLGoal.h>
 #include <sl_msgs/SLEnvDescription.h>
+#include <sl_msgs/SLResult.h>
 
 #include <ros/callback_queue.h>
 #include <tf/transform_broadcaster.h>
@@ -18,11 +19,13 @@
 
 static ros::Publisher out_goal_tex;
 static ros::Publisher out_goal_speech;
+static ros::Publisher out_result;
 
 EffectSpaceGoalSelector* selector;
 
 // things we need to keep track of
 EffectSpaceGoalSelector::goal currentGoal;
+int currentGoalID;
 std::vector<float> lastState;
 bool firstGoalSent = false;
 

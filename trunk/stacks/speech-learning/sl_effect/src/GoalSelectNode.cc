@@ -44,6 +44,7 @@ void selectGoal(){
   // ask for a goal
   int learner = -1;
   currentGoal = selector->selectGoal(lastState, &learner);
+  currentGoalID = currentGoal.goalMsg.goal_id;
 
   // send to correct learner
   if (learner == EffectSpaceGoalSelector::TexploreLearner){
@@ -66,7 +67,13 @@ void processState(const sl_msgs::SLState::ConstPtr &stateIn){
 void processDone(const std_msgs::Empty::ConstPtr &doneIn){
 
   // update progress of last goal
-  selector->updateGoal(lastState);
+  float dist =  selector->updateGoal(lastState);
+
+  // publish results
+  sl_msgs::SLResult resultMsg;
+  resultMsg.goal_dist = dist;
+  resultMsg.goal_id = currentGoalID;
+  out_result.publish(resultMsg);
 
   // select new goal
   selectGoal();
@@ -180,6 +187,7 @@ int main(int argc, char *argv[])
   // send new goals to texplore or sagg-riac 
   out_goal_tex = node.advertise<sl_msgs::SLGoal>("sl_effect/tex_goal",qDepth,false);
   out_goal_speech = node.advertise<sl_msgs::SLGoal>("sl_effect/speech_goal",qDepth,false);
+  out_result = node.advertise<sl_msgs::SLResult>("sl_effect/result",qDepth,false);
 
   // Set up subscribers
   ros::TransportHints noDelay = ros::TransportHints().tcpNoDelay(true);

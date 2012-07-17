@@ -10,3 +10,6 @@ bool[]    goal_mask
 # evaluate only - no learning
 bool evaluateOnly 
 
+# for debug/logging
+int32 goal_id
+
