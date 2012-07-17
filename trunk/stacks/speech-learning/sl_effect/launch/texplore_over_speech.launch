@@ -1,0 +1,24 @@
+ <!-- launch file for having texplore call the speech learner -->
+ <launch>
+
+  <!-- default is 3 objects and a 5x10 table -->
+  <arg name="nobjects" default="3"/> 
+  <arg name="width" default="5"/>
+  <arg name="seed" default="1"/>
+
+  <!-- effect space goal selection -->   
+	<node pkg="sl_effect" type="effect" name="effect" args="--progressgoal --texplorelearner --seed $(arg seed)"></node>
+
+  <!-- TEXPLORE learner -->   
+	<node pkg="sl_texplore" type="texplore" name="texplore" args="--master --seed $(arg seed)"></node>
+
+  <!-- SPEECH learner -->   
+	<node pkg="sl_speech" type="speech" name="speech" args="--seed $(arg seed)"></node>
+
+  <!-- Logging node -->   
+	<node pkg="sl_logger" type="logger" name="logger"></node>
+
+  <!-- Env node -->
+  <node pkg="sl_env" type="env" name="env" args="--nobjects $(arg nobjects) --width $(arg width) --seed $(arg seed)"></node>
+
+ </launch>
