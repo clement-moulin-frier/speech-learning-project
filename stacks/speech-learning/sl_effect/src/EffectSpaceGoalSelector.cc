@@ -272,6 +272,11 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
     goalValid = isGoalValid(currentState, goalIndex);
   }
 
+  if (GOALSELECTDEBUG){
+    cout << nGoalsTried << " Selected goal " << bestGoal << " randomly: ";
+    printGoal(&(goals[bestGoal]));
+  }
+
   return goalIndex;
 }
       
@@ -506,6 +511,9 @@ float EffectSpaceGoalSelector::calculateDistance(std::vector<float> finalState){
   }
   // normalize by number of features
   float normDist = totalDist / (float) nRelevantFeatures;
+
+  // max of 1
+  if (normDist > 1) normDist = 1;
 
   if (GOALDEBUG || GOALSELECTDEBUG) cout << "Normalized distance reached to goal " << currentGoalIndex << ": " << normDist << endl << endl;
 
