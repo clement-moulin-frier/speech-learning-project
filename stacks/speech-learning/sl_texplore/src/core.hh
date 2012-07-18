@@ -14,6 +14,11 @@
 */
 
 
+// types of planners
+#define SEQUENTIAL 0
+#define PARALLEL   1
+
+
 // types of models
 
 #define C45TREE     2
@@ -317,6 +322,15 @@ public:
 
 };
 
+
+/** Things specific to planners for goals */
+class GoalPlanner: public Planner {
+public:
+  virtual void setGoal(std::vector<float> goal, std::vector<bool> mask) = 0;
+  virtual void setUsableActions(int n) = 0;
+  virtual void setEvaluationMode(bool eval) = 0;
+  bool GOALDEBUG;
+};
 
   
 #endif

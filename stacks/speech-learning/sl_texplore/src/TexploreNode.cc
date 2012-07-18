@@ -16,6 +16,8 @@ void displayHelp(){
   cout << "--v (variance coefficient for exploration)\n";
   cout << "--n (novelty coefficient for exploration)\n";
   cout << "--master (TEXPLORE decides when to call speech learner)\n";
+  cout << "--realtime (TEXPLORE uses parallel real-time planner)\n";
+  cout << "--sequential (TEXPLORE uses sequential planner with UCT)\n";
   cout << "--prints (turn on debug printing of actions/states)\n";
   exit(-1);
 }
@@ -203,7 +205,7 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
                               C45TREE,
                               DIFF_AND_NOVEL_BONUS,
                               AVERAGE, 5,
-                              0,
+                              plannerType,
                               0.1, // epsilon
                               lambda,
                               (1.0/actrate), //0.1, //0.1, //0.01, // max time
@@ -216,7 +218,7 @@ void processEnv(const sl_msgs::SLEnvDescription::ConstPtr &envIn){
 
   cout << "Agent initialized, init special goal planner" << endl << flush;
 
-  planner = (ETUCTGivenGoal*)agent->planner;
+  planner = agent->planner;
 
   planner->GOALDEBUG = PRINTS;
 
@@ -244,12 +246,24 @@ int main(int argc, char *argv[])
     {"n", 1, 0, 'n'},
     {"master", 0, 0, 'm'},
     {"seed", 1, 0, 'x'},
+    {"realtime", 0, 0, 'r'},
+    {"sequential", 0, 0, 'e'},
     {"prints", 0, 0, 'p'},
     {"help", 0, 0, 'h'}
   };
 
   while(-1 != (ch = getopt_long_only(argc, argv, optflags, long_options, &option_index))) {
     switch(ch) {
+
+    case 'r':
+      plannerType = PARALLEL;
+      cout << "Use real-time parallel architecture" << endl;
+      break;
+
+    case 'e':
+      plannerType = SEQUENTIAL;
+      cout << "Use sequential architecture with UCT" << endl;
+      break;
 
     case 'x':
       seed = std::atoi(optarg);

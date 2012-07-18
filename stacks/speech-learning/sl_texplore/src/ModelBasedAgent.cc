@@ -86,6 +86,10 @@ int ModelBasedAgent::first_action(const std::vector<float> &s) {
 
   planner->setFirst();
  
+  // in case we didn't do it already
+  if (plannerType == PARALLEL)
+    planner->planOnNewModel();
+
   // choose an action
   int act = chooseAction(s);
 
@@ -193,7 +197,11 @@ void ModelBasedAgent::initPlanner(){
 
   int max_path = 100; 
 
-  planner = new ETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, history, rng);
+  if (plannerType == PARALLEL){
+    planner = new ParallelETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, history, rng);
+  } else {
+    planner = new ETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, history, rng);
+  }
 
 }
 
@@ -362,6 +370,6 @@ void ModelBasedAgent::savePolicy(const char* filename){
 
 void ModelBasedAgent::logValues(ofstream *of, int xmin, int xmax, int ymin, int ymax){
 
-  ((ETUCTGivenGoal*)planner)->logValues(of, xmin, xmax, ymin, ymax);
+  //  planner->logValues(of, xmin, xmax, ymin, ymax);
 
 }
