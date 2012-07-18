@@ -14,7 +14,7 @@
 
   <!-- TEXPLORE params -->
   <arg name="ntexsteps" default="15"/>
-  <arg name="actrate" default="15"/>
+  <arg name="actrate" default="10"/>
 
   <!-- Speech learner params -->
   <arg name="nspeeches" default="15"/>
