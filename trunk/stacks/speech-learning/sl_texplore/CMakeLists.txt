@@ -37,6 +37,7 @@ rosbuild_add_executable(texplore
   src/MultipleClassifiers.cc
   src/C45Tree.cc
   src/ETUCTGivenGoal.cc
+  src/ParallelETUCTGivenGoal.cc
 )
 
 target_link_libraries(texplore)

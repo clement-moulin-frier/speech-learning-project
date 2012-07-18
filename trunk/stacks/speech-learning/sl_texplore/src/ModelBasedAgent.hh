@@ -11,6 +11,7 @@
 
 // planners
 #include "ETUCTGivenGoal.hh"
+#include "ParallelETUCTGivenGoal.hh"
 
 // models
 #include "FactoredModel.hh"
@@ -91,7 +92,7 @@ public:
   MDPModel* model;
 
   /** Planner that we're using */
-  Planner* planner;
+  GoalPlanner* planner;
 
   float planningTime;
   float modelUpdateTime;

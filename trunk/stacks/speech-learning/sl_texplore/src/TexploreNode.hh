@@ -12,7 +12,7 @@
 #include <tf/transform_broadcaster.h>
 
 #include "ModelBasedAgent.hh"
-#include "ETUCTGivenGoal.hh"
+#include "core.hh"
 #include "Random.h"
 
 #include <getopt.h>
@@ -25,7 +25,7 @@ static ros::Publisher out_done;
 static ros::Publisher out_goal; // if we want to control speech learner
 
 ModelBasedAgent* agent = NULL;
-ETUCTGivenGoal* planner = NULL;
+GoalPlanner* planner = NULL;
 Random rng;
 bool PRINTS = false;//true;
 int seed = 1;
@@ -41,6 +41,7 @@ float ncoeff = 5;
 int maxsteps = 20;
 float actrate = 5;
 bool master = false;
+int plannerType = PARALLEL;
 
 // track which step we're on for current goal
 int istep = 0;

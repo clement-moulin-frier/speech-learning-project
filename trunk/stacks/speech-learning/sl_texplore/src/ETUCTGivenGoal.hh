@@ -20,7 +20,7 @@
 #include <deque>
 
 /** This class defines a modified version of UCT, which plans on a model using Monte Carlo rollouts. Unlike the original UCT, it does not separate values by tree depth, and it incorporates eligibility traces. */
-class ETUCTGivenGoal: public Planner {
+class ETUCTGivenGoal: public GoalPlanner {
 public:
 
 
@@ -96,16 +96,15 @@ public:
   // goal stuff
   std::vector<float> goalState;
   std::vector<bool> goalMask;
-  void setGoal(std::vector<float> goal, std::vector<bool> mask);
-  bool GOALDEBUG;
+  virtual void setGoal(std::vector<float> goal, std::vector<bool> mask);
 
   // variable # of actions stuff
   int numUsableActions;
-  void setUsableActions(int n);
+  virtual void setUsableActions(int n);
 
   // for evaluation
   bool evaluationMode;
-  void setEvaluationMode(bool eval);
+  virtual void setEvaluationMode(bool eval);
   
 protected:
 
