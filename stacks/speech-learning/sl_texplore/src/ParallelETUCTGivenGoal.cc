@@ -85,7 +85,10 @@ ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, floa
   pthread_mutex_init(&goal_mutex, NULL);
   pthread_mutex_init(&usable_actions_mutex, NULL);
   pthread_mutex_init(&eval_mode_mutex, NULL);
+
   pthread_mutex_init(&rollout_mutex, NULL);
+  pthread_cond_init(&rollout_cond, NULL);
+  currentRollout = false;
 
   // start parallel search thread
   actualPlanState = std::vector<float>(featmax.size());
@@ -1319,8 +1322,16 @@ void ParallelETUCTGivenGoal::parallelSearch(){
 
   if (PTHREADDEBUG) cout << "*** Planning thread wants search lock ***" << endl;
   pthread_mutex_lock(&rollout_mutex);
+  currentRollout = true;
+  pthread_mutex_unlock(&rollout_mutex);
+
 
   uctSearch(actS, discS, 0, searchHistory);
+
+  // signal that rollout is complete
+  pthread_mutex_lock(&rollout_mutex);
+  currentRollout = false;
+  pthread_cond_signal(&rollout_cond);
   pthread_mutex_unlock(&rollout_mutex);
 
   pthread_yield();
@@ -1633,6 +1644,12 @@ void ParallelETUCTGivenGoal::resetValues(){
 
 void ParallelETUCTGivenGoal::setGoal(std::vector<float> goal, std::vector<bool> mask){
 
+  // lock to make sure uct rollouts aren't happenign during this reset
+  pthread_mutex_lock(&rollout_mutex);
+  while (currentRollout){
+    pthread_cond_wait(&rollout_cond,&rollout_mutex);
+  }
+
   // lock around goal and goal mask
   pthread_mutex_lock(&goal_mutex);
   goalState = goal;
@@ -1646,9 +1663,6 @@ void ParallelETUCTGivenGoal::setGoal(std::vector<float> goal, std::vector<bool> 
     }
   }
   pthread_mutex_unlock(&goal_mutex);
-
-  // lock to make sure uct rollouts aren't happenign during this reset
-  pthread_mutex_lock(&rollout_mutex);
 
   // reset q values and uct visit counts for new plan
   pthread_mutex_lock(&statespace_mutex);

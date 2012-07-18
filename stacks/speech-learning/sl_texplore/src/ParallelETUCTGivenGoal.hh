@@ -158,6 +158,10 @@ public:
 
   // condition for when list is updated
   pthread_cond_t list_cond; 
+  
+  // condition for when rollout is complete
+  pthread_cond_t rollout_cond;
+  bool currentRollout;
 
   /** Perform UCT/Monte Carlo rollout from the given state.
       If terminal or at depth, return some reward.
