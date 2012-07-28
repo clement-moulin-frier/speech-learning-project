@@ -11,7 +11,6 @@
 
 #include "Random.h"
 #include "core.hh"
-
 #include <vector>
 #include <set>
 #include <map>
@@ -95,14 +94,14 @@ public:
   virtual float getConf(const std::vector<float> &input);
 
   /** Build the tree with the given instances from the given tree node */
-  void buildTree(tree_node* node, const std::vector<tree_experience*> &instances,  bool changed);
+  bool buildTree(tree_node* node, const std::vector<tree_experience*> &instances,  bool changed);
 
   // helper functions
   /** Initialize the tree */
   void initTree();
 
   /** Rebuild the tree */
-  void rebuildTree();
+  bool rebuildTree();
 
   /** Initialize the tree_node struct */
   void initTreeNode(tree_node* node);
@@ -146,7 +145,7 @@ public:
                           std::vector<tree_experience*> *bestLeft, std::vector<tree_experience*> *bestRight);
 
   /** Implement the given split at the given node */
-  void implementSplit(tree_node* node, float bestGainRatio, int bestDim,
+  bool implementSplit(tree_node* node, float bestGainRatio, int bestDim,
                       float bestVal, bool bestType, 
                       const std::vector<tree_experience*> &left, 
                       const std::vector<tree_experience*> &right, bool changed);
@@ -164,7 +163,7 @@ public:
   void outputProbabilities(tree_node *t, std::map<float, float>* retval);
 
   /** Make the given node into a leaf node. */
-  void makeLeaf(tree_node* node);
+  bool makeLeaf(tree_node* node);
 
   /** Allocate a new node from our pre-allocated store of tree nodes */
   tree_node* allocateNode();

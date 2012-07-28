@@ -130,44 +130,7 @@ bool ExplorationModel::updateWithExperience(experience &e){
 
 }
 
-bool ExplorationModel::getIMRewards(const std::vector<float> &state, int act, float* vreward, float* nreward){
 
-  StateActionInfo retval;
-  model->getStateActionInfo(state, act, &retval);
-
-  // small bonus for states far from visited states with same action
-  if (exploreType == NOVEL_STATE_BONUS || exploreType == DIFF_AND_NOVEL_BONUS || exploreType == DIFF_NOVEL_UNVISITED){
-    std::vector<float> state2 = state;
-    state2.push_back(act);
-    float featDist = getFeatDistToVisitedSA(state2);
-    if (featDist > 0){
-      // modify reward with proportional bonus of n
-      float bonus = featDist * noveltyCoeff;
-      if (MODEL_DEBUG){
-        cout << "   State-Action novel state bonus, dist: " << featDist
-             << " n: " << noveltyCoeff << ", bonus, " << bonus << endl;
-      }
-      *nreward = bonus;
-    }
-  }
-
-  // use some % of v if we're doing continuous bonus
-  if (exploreType == CONTINUOUS_BONUS_R || exploreType == DIFF_AND_VISIT_BONUS || exploreType == DIFF_AND_NOVEL_BONUS || exploreType == DIFF_AND_NF_BONUS || exploreType == DIFF_NOVEL_UNVISITED){
-    if (retval.conf < 1.0){
-      // percent of conf
-      float bonus = (1.0-retval.conf)*varianceCoeff;
-      *vreward = bonus;
-      if (MODEL_DEBUG){
-        cout << "   State-Action continuous bonus conf: "
-             << retval.conf
-             << ", using v*(1-conf): "
-             << bonus << endl;
-      }
-    }
-  }
-
-  return true;
-}
 
 // calculate state info such as transition probs, known/unknown, reward prediction
 bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int act, StateActionInfo* retval){
@@ -216,36 +179,36 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // small bonus for unvisited states
   if (exploreType == UNVISITED_BONUS){
+    float bonus = -unvisitedCoeff;
     if (!checkForState(state)){
       // modify reward with a bonus of u
-      float newQ =retval->reward + unvisitedCoeff;
+      bonus += unvisitedCoeff;
       if (MODEL_DEBUG){
         cout << "   State unvisited bonus, orig R: "
              << retval->reward
              << " adding u: " << unvisitedCoeff
-             << " new value : " << newQ
              << endl;
       }
-      retval->reward = newQ;
     }
+    retval->reward += bonus;
   }
 
   // small bonus for unvisited state-actions
   if (exploreType == UNVISITED_ACT_BONUS || exploreType == DIFF_AND_VISIT_BONUS || exploreType == DIFF_NOVEL_UNVISITED){
     std::vector<float> state2 = state;
     state2.push_back(act);
+    float bonus = -unvisitedCoeff;
     if (!checkForState(state2)){
       // modify reward with a bonus of u
-      float newQ =retval->reward + unvisitedCoeff;
+      bonus += unvisitedCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action unvisited bonus, orig R: "
              << retval->reward
              << " adding u: " << unvisitedCoeff
-             << " new value : " << newQ
              << endl;
       }
-      retval->reward = newQ;
     }
+    retval->reward += bonus;
   }
 
   // small bonus for states far from visited states with same action
@@ -253,31 +216,33 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
     std::vector<float> state2 = state;
     state2.push_back(act);
     float featDist = getFeatDistToVisitedSA(state2);
+    float bonus = -noveltyCoeff;
     if (featDist > 0){
       // modify reward with proportional bonus of n
-      float bonus = featDist * noveltyCoeff;
+      bonus += featDist * noveltyCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action novel state bonus, dist: " << featDist
              << " n: " << noveltyCoeff << ", bonus, " << bonus << endl;
       }
-      retval->reward += bonus;
     }
+    retval->reward += bonus;
   }
 
   // small bonus for states with feature values that haven't been seen before
   if (exploreType == DIFF_AND_NF_BONUS || exploreType == NOVEL_FEAT_BONUS){
     int numNovelFeats = getNumNovelFeats(state, act);
     float novelFeatRatio = (float)numNovelFeats/(float)state.size();
+    float bonus = -noveltyCoeff;
     if (numNovelFeats > 0){
       // modify reward with proportional bonus of n
-      float bonus = novelFeatRatio * noveltyCoeff;
+      bonus += novelFeatRatio * noveltyCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action novel feat bonus, num novel: " << numNovelFeats
              << " ratio: " << novelFeatRatio
              << " n: " << noveltyCoeff << ", bonus, " << bonus << endl;
       }
-      retval->reward += bonus;
     }
+    retval->reward += bonus;
   }
 
   // use some % of v if we're doing continuous terminal bonus
@@ -298,10 +263,10 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // use some % of v if we're doing continuous bonus
   if (exploreType == CONTINUOUS_BONUS_R || exploreType == DIFF_AND_VISIT_BONUS || exploreType == DIFF_AND_NOVEL_BONUS || exploreType == DIFF_AND_NF_BONUS || exploreType == DIFF_NOVEL_UNVISITED){
+    float bonus = -varianceCoeff;
     if (retval->conf < 1.0){
       // percent of conf
-      float bonus = (1.0-retval->conf)*varianceCoeff;
-      retval->reward += bonus;
+      bonus += (1.0-retval->conf)*varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action continuous bonus conf: "
              << retval->conf
@@ -309,6 +274,7 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
              << bonus << endl;
       }
     }
+    retval->reward += bonus;
   }
 
   // use qmax if we're doing threshold terminal bonus and conf under threshold
@@ -329,9 +295,9 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // use rmax for additional thresh bonus and conf under thresh
   if (exploreType == THRESHOLD_BONUS_R){
+    float bonus = -varianceCoeff;
     if (retval->conf < 0.9){
-      float bonus = varianceCoeff;
-      retval->reward += bonus;
+      bonus += varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action conf< thresh: "
              << retval->conf
@@ -340,6 +306,7 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
              << varianceCoeff << endl;
       }
     }
+    retval->reward += bonus;
   }
 
   // visits conf
