@@ -206,8 +206,7 @@ bool C45Tree::trainInstance(classPair &instance){
 
   // mode 0: re-build every step
   if (mode == BUILD_EVERY || nExperiences <= 1){
-    rebuildTree();
-    modelChanged = true;
+    modelChanged = rebuildTree();
   }
 
   // mode 1: re-build on error only
@@ -222,8 +221,7 @@ bool C45Tree::trainInstance(classPair &instance){
     float outputProb = count / (float)leaf->nInstances;
 
     if (outputProb < 0.75){
-      rebuildTree();
-      modelChanged = true;
+      modelChanged = rebuildTree();
     }
   }
 
@@ -231,8 +229,7 @@ bool C45Tree::trainInstance(classPair &instance){
   else if (mode == BUILD_EVERY_N){
     // build every freq steps
     if (!modelChanged && (nExperiences % freq) == 0){
-      rebuildTree();
-      modelChanged = true;
+      modelChanged = rebuildTree();
     }
   }
 
@@ -351,8 +348,7 @@ bool C45Tree::trainInstances(std::vector<classPair> &instances){
   if (DTDEBUG) cout << "Added " << instances.size() << " new instances. doBuild = " << doBuild << endl;
 
   if (doBuild){
-    rebuildTree();
-    modelChanged = true;
+    modelChanged = rebuildTree();
   }
 
   if (modelChanged){
@@ -370,9 +366,8 @@ bool C45Tree::trainInstances(std::vector<classPair> &instances){
 }
 
 
-void C45Tree::rebuildTree(){
-  //  cout << "rebuild tree " << id << " on exp: " << nExperiences << endl;
-  buildTree(root, experiences, false);
+bool C45Tree::rebuildTree(){
+  return buildTree(root, experiences, false);
 }
 
 
@@ -453,7 +448,7 @@ void C45Tree::initTreeNode(tree_node* node){
   // split criterion
   node->dim = -1;
   node->val = -1;
-  node->type = 0;
+  node->type = -1;
 
   // current data
   node->nInstances = 0;
@@ -548,7 +543,7 @@ bool C45Tree::passTest(int dim, float val, bool type, const std::vector<float> &
 }
 
 
-void C45Tree::buildTree(tree_node *node,
+bool C45Tree::buildTree(tree_node *node,
                         const std::vector<tree_experience*> &instances,
                         bool changed){
   if(DTDEBUG) cout << "buildTree, node=" << node->id
@@ -575,13 +570,13 @@ void C45Tree::buildTree(tree_node *node,
 
   // see if they're all the same
   if (node->outputs.size() == 1){
-    makeLeaf(node);
+    bool change = makeLeaf(node);
     if (DTDEBUG){
       cout << "All " << node->nInstances
            << " classified with output "
            << instances[0]->output << endl;
     }
-    return;
+    return change;
   }
 
   // if not, calculate gain ratio to determine best split
@@ -589,7 +584,7 @@ void C45Tree::buildTree(tree_node *node,
 
     if (SPLITDEBUG) cout << endl << "Creating new decision node" << endl;
 
-    node->leaf = false;
+    //node->leaf = false;
     //node->nInstances++;
 
     float bestGainRatio = -1.0;
@@ -601,14 +596,14 @@ void C45Tree::buildTree(tree_node *node,
 
     testPossibleSplits(instances, &bestGainRatio, &bestDim, &bestVal, &bestType, &bestLeft, &bestRight);
 
-    implementSplit(node, bestGainRatio, bestDim, bestVal, bestType, bestLeft, bestRight, changed);
+    return implementSplit(node, bestGainRatio, bestDim, bestVal, bestType, bestLeft, bestRight, changed);
 
   }
 
 }
 
 
-void C45Tree::makeLeaf(tree_node* node){
+bool C45Tree::makeLeaf(tree_node* node){
 
   // check on children
   if (node->l != NULL){
@@ -623,12 +618,16 @@ void C45Tree::makeLeaf(tree_node* node){
     node->r = NULL;
   }
 
+  // changed from not leaf to leaf, or just init'd
+  bool change = (!node->leaf || node->type < 0);
+
   node->leaf = true;
   node->type = 0;
 
+  return change;
 }
 
-void C45Tree::implementSplit(tree_node* node, float bestGainRatio, int bestDim,
+bool C45Tree::implementSplit(tree_node* node, float bestGainRatio, int bestDim,
                              float bestVal, bool bestType,
                              const std::vector<tree_experience*> &bestLeft, 
                              const std::vector<tree_experience*> &bestRight,
@@ -641,14 +640,14 @@ void C45Tree::implementSplit(tree_node* node, float bestGainRatio, int bestDim,
 
   // see if this should still be a leaf node
   if (bestGainRatio < MIN_GAIN_RATIO){
-    makeLeaf(node);
+    bool change = makeLeaf(node);
     if (SPLITDEBUG || STOCH_DEBUG){
       cout << "DT " << id << " Node " << node->id << " Poor gain ratio: "
 	   << bestGainRatio << ", " << node->nInstances
            << " instances classified at leaf " << node->id
            << " with multiple outputs " << endl;
     }
-    return;
+    return change;
   }
 
   // see if this split changed or not
@@ -658,22 +657,25 @@ void C45Tree::implementSplit(tree_node* node, float bestGainRatio, int bestDim,
       && node->l != NULL && node->r != NULL){
     // same split as before.
     if (DTDEBUG || SPLITDEBUG) cout << "Same split as before" << endl;
+    bool changeL = false;
+    bool changeR = false;
 
     // see which leaf changed
     if (bestLeft.size() > (unsigned)node->l->nInstances){
       // redo left side
       if (DTDEBUG) cout << "Rebuild left side of tree" << endl;
-      buildTree(node->l, bestLeft, changed);
+      changeL = buildTree(node->l, bestLeft, changed);
     }
 
     if (bestRight.size() > (unsigned)node->r->nInstances){
       // redo right side
       if (DTDEBUG) cout << "Rebuild right side of tree" << endl;
-      buildTree(node->r, bestRight, changed);
+      changeR = buildTree(node->r, bestRight, changed);
     }
-    return;
-  }
 
+    // everything up to here is the same, check if there were changes below
+    return (changeL || changeR);
+  }
 
   // totally new
   // set the best split here
@@ -718,6 +720,9 @@ void C45Tree::implementSplit(tree_node* node, float bestGainRatio, int bestDim,
   if (DTDEBUG) cout << "Building right tree for node " << node->id << endl;
   buildTree(node->r, bestRight, true);
 
+  // this one changed, or above changed, no reason to check change of lower parts
+  return true;
+  
 }
 
 

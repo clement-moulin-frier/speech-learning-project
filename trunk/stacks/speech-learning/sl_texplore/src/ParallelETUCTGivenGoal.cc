@@ -1155,6 +1155,8 @@ std::vector<float> ParallelETUCTGivenGoal::simulateNextState(const std::vector<f
   }
   pthread_mutex_unlock(&goal_mutex);
 
+  *term = false;
+
   // at goal: +10 reward
   if (goalMatched){
     *reward += 10.0;

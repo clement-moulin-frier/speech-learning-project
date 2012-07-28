@@ -840,6 +840,8 @@ std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &a
       goalMatched = false;
     } 
   }
+
+  *term = false;
   
   // at goal: +10 reward
   if (goalMatched){

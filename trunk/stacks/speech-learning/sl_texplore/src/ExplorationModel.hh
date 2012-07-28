@@ -74,7 +74,6 @@ public:
   bool addFeatsToSet(const std::vector<float> &s, int act);
   float calcEntropy(std::map< std::vector<float> , float> &transitionProbs);
 
-  bool getIMRewards(const std::vector<float> &state, int act, float* breward, float* vreward);
 
   bool MODEL_DEBUG;
   bool NOVELTYDEBUG;
