@@ -16,12 +16,11 @@ ETUCTGivenGoal::ETUCTGivenGoal(int numactions, float gamma, float rrange, float 
              int MAX_ITER, float MAX_TIME, int MAX_DEPTH, int modelType,
              const std::vector<float> &fmax, const std::vector<float> &fmin,
              const std::vector<int> &nstatesPerDim, bool trackActual,
-             int historySize, Random r):
+             Random r):
   numactions(numactions), gamma(gamma), rrange(rrange), lambda(lambda),
   MAX_ITER(MAX_ITER), MAX_TIME(MAX_TIME),
   MAX_DEPTH(MAX_DEPTH), modelType(modelType), statesPerDim(nstatesPerDim),
-  trackActual(trackActual), HISTORY_SIZE(historySize),
-  HISTORY_FL_SIZE(historySize*numactions)//fmax.size())
+  trackActual(trackActual)
 {
   rng = r;
 
@@ -40,7 +39,6 @@ ETUCTGivenGoal::ETUCTGivenGoal(int numactions, float gamma, float rrange, float 
   MODELDEBUG = false;//true;//false;
   UCTDEBUG = false; //true;//false;
   REALSTATEDEBUG = false;
-  HISTORYDEBUG = false; //true; //false;
   GOALDEBUG = false;//true;
 
   featmax = fmax;
@@ -60,22 +58,6 @@ ETUCTGivenGoal::ETUCTGivenGoal(int numactions, float gamma, float rrange, float 
   }
   if (trackActual){
     cout << "ETUCTGivenGoal tracking real state values" << endl;
-  }
-  cout << "Planner using history size: " << HISTORY_SIZE << endl;
-
-  if (HISTORY_SIZE == 0){
-    saHistory.push_back(0.0);
-  }
-  else {
-    if (HISTORYDEBUG) {
-      cout << "History size of " << HISTORY_SIZE
-           << " float size of " << HISTORY_FL_SIZE
-           << " with state size: " << fmin.size()
-           << " and numact: " << numactions << endl;
-    }
-    for (int i = 0; i < HISTORY_FL_SIZE; i++){
-      saHistory.push_back(0.0);
-    }
   }
 
   //  initStates();
@@ -178,12 +160,6 @@ bool ETUCTGivenGoal::updateModelWithExperience(const std::vector<float> &laststa
   prevstate = last;
   prevact = lastact;
 
-  // get state info
-  previnfo = &(statedata[last]);
-
-  // update the state visit count
-  previnfo->visits[lastact]++;
-
   // init model?
   if (model == NULL){
     cout << "ERROR IN MODEL OR MODEL SIZE" << endl;
@@ -210,54 +186,6 @@ bool ETUCTGivenGoal::updateModelWithExperience(const std::vector<float> &laststa
   e.reward = reward;
   e.terminal = term;
 
-  if (HISTORY_SIZE > 0){
-    if (HISTORYDEBUG) {
-      cout << "Original state vector (size " << e.s.size() << ": " << e.s[0];
-      for (unsigned i = 1; i < e.s.size(); i++){
-        cout << "," << e.s[i];
-      }
-      cout << endl;
-    }
-    // add history onto e.s
-    for (int i = 0; i < HISTORY_FL_SIZE; i++){
-      e.s.push_back(saHistory[i]);
-    }
-
-    if (HISTORYDEBUG) {
-      cout << "New state vector (size " << e.s.size() << ": " << e.s[0];
-      for (unsigned i = 1; i < e.s.size(); i++){
-        cout << "," << e.s[i];
-      }
-      cout << endl;
-    }
-
-    if (!seedMode){
-      // push this state and action onto the history vector
-      /*
-        for (unsigned i = 0; i < last->size(); i++){
-        saHistory.push_back((*last)[i]);
-        saHistory.pop_front();
-        }
-      */
-
-      for (int i = 0; i < numactions; i++){
-        if (i == lastact)
-          saHistory.push_back(1.0);
-        else
-          saHistory.push_back(0.0);
-        saHistory.pop_front();
-      }
-
-      if (HISTORYDEBUG) {
-        cout << "New history vector (size " << saHistory.size() << ": " << saHistory[0];
-        for (unsigned i = 1; i < saHistory.size(); i++){
-          cout << "," << saHistory[i];
-        }
-        cout << endl;
-      }
-    }
-  }
-
   bool modelChanged = model->updateWithExperience(e);
 
   if (timingType)
@@ -269,44 +197,13 @@ bool ETUCTGivenGoal::updateModelWithExperience(const std::vector<float> &laststa
 
 void ETUCTGivenGoal::updateStateActionFromModel(state_t s, int a, state_info* info){
 
-  if (HISTORY_SIZE == 0){
 
-    std::deque<float> history(1,0.0);
-    StateActionInfo* newModel = NULL;
-    newModel = &(info->historyModel[a][history]);
+    StateActionInfo* newModel = &(info->model[a]);
 
-    updateStateActionHistoryFromModel(*s, a, newModel);
+    model->getStateActionInfo(*s, a, newModel);
+    newModel->frameUpdated = nactions;
 
-  }
-
-  else {
-
-    // fill in for all histories???
-    for (std::map< std::deque<float>, StateActionInfo>::iterator it = info->historyModel[a].begin(); it != info->historyModel[a].end(); it++){
-
-      std::deque<float> oneHist = (*it).first;
-      StateActionInfo* newModel = &((*it).second);
-
-      // add history to vector
-      std::vector<float> modState = *s;
-      for (int i = 0; i < HISTORY_FL_SIZE; i++){
-        modState.push_back(oneHist[i]);
-      }
-      updateStateActionHistoryFromModel(modState, a, newModel);
-    }
-
-  }
-
-}
-
-void ETUCTGivenGoal::updateStateActionHistoryFromModel(const std::vector<float> modState, int a, StateActionInfo *newModel){
-
-  // update state info
-  // get state action info for each action
-  model->getStateActionInfo(modState, a, newModel);
-  newModel->frameUpdated = nactions;
-
-  //canonNextStates(newModel);
+    cout << "size of a stateaction info : " << sizeof(StateActionInfo) << " size of this one: " << sizeof(*newModel) << " size of a transition prob map: " << sizeof(std::map< std::vector<float> , float>) << endl;
 
 }
 
@@ -357,8 +254,7 @@ void ETUCTGivenGoal::planFromState(const std::vector<float> &state){
   int i = 0;
   for (i = 0; i < MAX_ITER; i++){
 
-    std::deque<float> searchHistory = saHistory;
-    uctSearch(state, s, 0, searchHistory);
+    uctSearch(state, s, 0);
 
     // break after some max time
     if ((getSeconds() - planTime) > MAX_TIME){ // && i > 500){
@@ -521,10 +417,9 @@ void ETUCTGivenGoal::initStateInfo(state_t s, state_info* info){
     cout << ", (" << (*s)[0] << "," << (*s)[1] << ")" << endl;
   }
 
-  info->historyModel = new std::map< std::deque<float>, StateActionInfo>[numactions];
+  info->model = new StateActionInfo[numactions];
 
   // model q values, visit counts
-  info->visits.resize(numactions, 0);
   info->Q.resize(numactions, 0);
   info->uctActions.resize(numactions, 1);
   info->uctVisits = 1;
@@ -535,6 +430,7 @@ void ETUCTGivenGoal::initStateInfo(state_t s, state_info* info){
     info->Q[i] = rng.uniform(0,0.01);
   }
 
+  cout << "Size of a state info: " << sizeof(state_info) << " size of this one: " << sizeof(*info) << endl << " size of a stateactioninfo: " << sizeof(StateActionInfo) << endl;
   //if (PLANNERDEBUG) cout << "done with initStateInfo()" << endl;
 
 }
@@ -556,8 +452,7 @@ void ETUCTGivenGoal::printStates(){
     cout << endl;
 
     for (int act = 0; act < numactions; act++){
-      cout << " visits[" << act << "] = " << info->visits[act]
-           << " Q: " << info->Q[act] << endl;
+      cout << " Q: " << info->Q[act] << endl;
     }
 
   }
@@ -566,7 +461,7 @@ void ETUCTGivenGoal::printStates(){
 
 void ETUCTGivenGoal::deleteInfo(state_info* info){
 
-  delete [] info->historyModel;
+  delete [] info->model;
 
 }
 
@@ -580,7 +475,7 @@ double ETUCTGivenGoal::getSeconds(){
 }
 
 
-float ETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, int depth,std::deque<float> searchHistory){
+float ETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, int depth){
   if (UCTDEBUG){
     cout << " uctSearch state ";
     for (unsigned i = 0; i < actS.size(); i++){
@@ -634,7 +529,7 @@ float ETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, i
   info->needsUpdate = true;
 
   // simulate next state, reward, terminal
-  std::vector<float> actualNext = simulateNextState(actS, discS, info, searchHistory, action, &reward, &term);
+  std::vector<float> actualNext = simulateNextState(actS, discS, info, action, &reward, &term);
 
   // simulate reward from this action
   if (term){
@@ -661,34 +556,8 @@ float ETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, i
 
   info->visited++; // = true;
 
-  if (HISTORY_SIZE > 0){
-    // update history vector for this state
-    /*
-      for (unsigned i = 0; i < (*discS).size(); i++){
-      searchHistory.push_back((*discS)[i]);
-      searchHistory.pop_front();
-      }
-    */
-    for (int i = 0; i < numactions; i++){
-      if (i == action)
-        searchHistory.push_back(1.0);
-      else
-        searchHistory.push_back(0.0);
-      searchHistory.pop_front();
-    }
-
-    if (HISTORYDEBUG) {
-      cout << "New planning history vector (size " << searchHistory.size() << ": " << searchHistory[0];
-      for (unsigned i = 1; i < searchHistory.size(); i++){
-        cout << "," << searchHistory[i];
-      }
-      cout << endl;
-    }
-  }
-
-
   // new q value
-  float newQ = reward + gamma * uctSearch(actualNext, discNext, depth+1, searchHistory);
+  float newQ = reward + gamma * uctSearch(actualNext, discNext, depth+1);
 
   if (info->visited == 1){
 
@@ -772,22 +641,13 @@ int ETUCTGivenGoal::selectUCTAction(state_info* info){
 
 
 
-std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &actualState, state_t discState, state_info* info, const std::deque<float> &history, int action, float* reward, bool* term){
+std::vector<float> ETUCTGivenGoal::simulateNextState(const std::vector<float> &actualState, state_t discState, state_info* info, int action, float* reward, bool* term){
 
-  StateActionInfo* modelInfo = &(info->historyModel[action][history]);
+  StateActionInfo* modelInfo = &(info->model[action]);
   bool upToDate = modelInfo->frameUpdated >= lastUpdate;
 
   if (!upToDate){
-    // must put in appropriate history
-    if (HISTORY_SIZE > 0){
-      std::vector<float> modState = *discState;
-      for (int i = 0; i < HISTORY_FL_SIZE; i++){
-        modState.push_back(history[i]);
-      }
-      updateStateActionHistoryFromModel(modState, action, modelInfo);
-    } else {
-      updateStateActionHistoryFromModel(*discState, action, modelInfo);
-    }
+    updateStateActionFromModel(discState, action, info);
   }
 
 
@@ -989,17 +849,11 @@ std::vector<float> ETUCTGivenGoal::subVec(const std::vector<float> &a, const std
 
 
 void ETUCTGivenGoal::setFirst(){
-  if (HISTORY_SIZE == 0) return;
-
-  if (HISTORYDEBUG) cout << "first action, set sahistory to 0s" << endl;
-
-  // first action, reset history vector
-  saHistory.resize(saHistory.size(), 0.0);
+  return;
 }
 
 void ETUCTGivenGoal::setSeeding(bool seeding){
 
-  if (HISTORYDEBUG) cout << "set seed mode to " << seeding << endl;
   seedMode = seeding;
 
 }
