@@ -210,7 +210,6 @@ protected:
 
   /** State info struct. Maintains visit counts, models, and q-values for state-actions. */
   struct state_info {
-    int id;
 
     // data filled in from models
     StateActionInfo* model;
@@ -221,7 +220,8 @@ protected:
     // uct experience data
     int uctVisits;
     std::vector<int> uctActions;
-    int visited;
+    unsigned short int visited;
+    unsigned short int id;
 
     // needs update
     bool needsUpdate;

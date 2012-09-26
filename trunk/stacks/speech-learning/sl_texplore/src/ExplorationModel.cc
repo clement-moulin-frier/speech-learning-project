@@ -133,12 +133,12 @@ bool ExplorationModel::updateWithExperience(experience &e){
 
 
 // calculate state info such as transition probs, known/unknown, reward prediction
-bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int act, StateActionInfo* retval){
+float ExplorationModel::getStateActionInfo(const std::vector<float> &state, int act, StateActionInfo* retval){
   //if (MODEL_DEBUG) cout << "getStateActionInfo, " << &state <<  ", " << act << endl;
 
   retval->transitionProbs.clear();
 
-  model->getStateActionInfo(state, act, retval);
+  float conf = model->getStateActionInfo(state, act, retval);
 
   // possibly scale task reward relative to others
   retval->reward *= taskCoeff;
@@ -146,7 +146,7 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
   //cout << "state: " << state[0] << " act: " << act;
 
   if (MODEL_DEBUG)// || (retval->conf > 0.0 && retval->conf < 1.0))
-    cout << "reward: " << retval->reward << " conf: " << retval->conf << endl;
+    cout << "reward: " << retval->reward << " conf: " << conf << endl;
 
   // check exploration bonuses
 
@@ -163,7 +163,7 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
   if (exploreType == EXPLORE_UNKNOWN){
     if (!retval->known){
       if (MODEL_DEBUG){
-        cout << "State-Action Unknown in model: conf: " << retval->conf << " ";
+        cout << "State-Action Unknown in model: conf: " << conf << " ";
         for (unsigned si = 0; si < state.size(); si++){
           cout << (state)[si] << ",";
         }
@@ -247,12 +247,12 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // use some % of v if we're doing continuous terminal bonus
   if (exploreType == CONTINUOUS_BONUS){
-    if (retval->conf < 1.0){
+    if (conf < 1.0){
       // percent of conf
-      float bonus = (1.0-retval->conf)*varianceCoeff;
+      float bonus = (1.0-conf)*varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action continuous bonus conf: "
-             << retval->conf
+             << conf
              << ", using v*(1-conf): "
              << bonus << endl;
       }
@@ -264,12 +264,12 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
   // use some % of v if we're doing continuous bonus
   if (exploreType == CONTINUOUS_BONUS_R || exploreType == DIFF_AND_VISIT_BONUS || exploreType == DIFF_AND_NOVEL_BONUS || exploreType == DIFF_AND_NF_BONUS || exploreType == DIFF_NOVEL_UNVISITED){
     float bonus = -varianceCoeff;
-    if (retval->conf < 1.0){
+    if (conf < 1.0){
       // percent of conf
-      bonus += (1.0-retval->conf)*varianceCoeff;
+      bonus += (1.0-conf)*varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action continuous bonus conf: "
-             << retval->conf
+             << conf
              << ", using v*(1-conf): "
              << bonus << endl;
       }
@@ -279,11 +279,11 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // use qmax if we're doing threshold terminal bonus and conf under threshold
   if (exploreType == THRESHOLD_BONUS){
-    if (retval->conf < 0.5){
+    if (conf < 0.5){
       float bonus = varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action conf< thresh: "
-             << retval->conf
+             << conf
              << " M: " << M
              << ", using v "
              << varianceCoeff << endl;
@@ -296,11 +296,11 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
   // use rmax for additional thresh bonus and conf under thresh
   if (exploreType == THRESHOLD_BONUS_R){
     float bonus = -varianceCoeff;
-    if (retval->conf < 0.9){
+    if (conf < 0.9){
       bonus += varianceCoeff;
       if (MODEL_DEBUG){
         cout << "   State-Action conf< thresh: "
-             << retval->conf
+             << conf
              << " M: " << M
              << ", using v "
              << varianceCoeff << endl;
@@ -311,12 +311,12 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
   // visits conf
   if (exploreType == VISITS_CONF){
-    if (retval->conf < 0.5){
+    if (conf < 0.5){
       float bonus = qmax;
       retval->reward += bonus;
       if (MODEL_DEBUG){
         cout << "   State-Action conf< thresh or 0 visits: "
-             << retval->conf
+             << conf
              << " M: " << M
              << ", using qmax "
              << qmax << endl;
@@ -329,12 +329,11 @@ bool ExplorationModel::getStateActionInfo(const std::vector<float> &state, int a
 
 
   if (MODEL_DEBUG)
-    cout << "   Conf: " << retval->conf << "   Avg reward: " << retval->reward << endl;
+    cout << "   Conf: " << conf << "   Avg reward: " << retval->reward << endl;
   if (isnan(retval->reward))
     cout << "ERROR: Model returned reward of NaN" << endl;
 
-  return true;
-
+  return conf;
 }
 
 // add state to set (if its not already in it)

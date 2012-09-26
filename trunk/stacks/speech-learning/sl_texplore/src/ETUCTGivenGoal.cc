@@ -203,8 +203,6 @@ void ETUCTGivenGoal::updateStateActionFromModel(state_t s, int a, state_info* in
     model->getStateActionInfo(*s, a, newModel);
     newModel->frameUpdated = nactions;
 
-    cout << "size of a stateaction info : " << sizeof(StateActionInfo) << " size of this one: " << sizeof(*newModel) << " size of a transition prob map: " << sizeof(std::map< std::vector<float> , float>) << endl;
-
 }
 
 
@@ -430,7 +428,6 @@ void ETUCTGivenGoal::initStateInfo(state_t s, state_info* info){
     info->Q[i] = rng.uniform(0,0.01);
   }
 
-  cout << "Size of a state info: " << sizeof(state_info) << " size of this one: " << sizeof(*info) << endl << " size of a stateactioninfo: " << sizeof(StateActionInfo) << endl;
   //if (PLANNERDEBUG) cout << "done with initStateInfo()" << endl;
 
 }
