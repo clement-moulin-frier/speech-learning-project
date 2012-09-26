@@ -44,13 +44,13 @@ public:
       \param featmin minimum value of each feature
       \param statesPerDim # of values to discretize each feature into
       \param trackActual track actual real-valued states (or just discrete states)
-      \param historySize # of previous actions to use for delayed domains
       \param rng random number generator
   */
   ParallelETUCTGivenGoal(int numactions, float gamma, float rrange, float lambda,
                          int MAX_ITER, float MAX_TIME, int MAX_DEPTH,  int modelType,
                          const std::vector<float> &featmax, const std::vector<float> &featmin,
-                         const std::vector<int> &statesPerDim, bool trackActual, int historySize, Random rng = Random());
+                         const std::vector<int> &statesPerDim, bool trackActual, 
+                         Random rng = Random());
   
   /** Unimplemented copy constructor: internal state cannot be simply
       copied. */
@@ -101,7 +101,6 @@ public:
   bool MTHREADDEBUG;
   bool TIMINGDEBUG;
   bool REALSTATEDEBUG;
-  bool HISTORYDEBUG;
 
   /** Copy of our model used when updating the model, so the original can still be queried by the other threads. */
   MDPModel* modelcopy;
@@ -148,8 +147,6 @@ public:
   pthread_mutex_t model_mutex;
   /** Mutex around the list of experiences to be added to the model. */
   pthread_mutex_t list_mutex;
-  /** Mutex around the history of previous actions of the agent. */
-  pthread_mutex_t history_mutex;
   /** Mutex around the counter of how many actions the agent has taken. */
   pthread_mutex_t nactions_mutex;
 
@@ -174,7 +171,7 @@ public:
       
       From "Bandit Based Monte Carlo Planning" by Kocsis and Szepesv´ari.
   */
-  float uctSearch(const std::vector<float> &actS, state_t state, int depth, std::deque<float> &history);
+  float uctSearch(const std::vector<float> &actS, state_t state, int depth);
 
   /** Select a random previously visited state. */
   std::vector<float> selectRandomState();
@@ -215,12 +212,8 @@ protected:
   struct state_info {
     int id;
 
-    // experience data
-    std::vector<int> visits;
-    int totalVisits;
-
     // data filled in from models
-    std::map< std::deque<float>, StateActionInfo>* historyModel;
+    StateActionInfo* model;
 
     // q values from policy creation
     std::vector<float> Q;
@@ -267,9 +260,6 @@ protected:
   /** Update the state_info copy of the model for the given state-action from the MDPModel */
   void updateStateActionFromModel(state_t s, int a, state_info* info);
   
-  /** Update the state_info copy of the model for the given state-action and k-action history from the MDPModel. */
-  void updateStateActionHistoryFromModel(const std::vector<float> modState, int a, StateActionInfo *newModel);
-
   /** Get the current time in seconds */
   double getSeconds();
 
@@ -279,7 +269,7 @@ protected:
   
   /** Return a sampled state from the next state distribution of the model. 
       Simulate the next state from the given state, action, and possibly history of past actions. */
-  std::vector<float> simulateNextState(const std::vector<float> &actS, state_t state, state_info* info, const std::deque<float> &history, int action, float* reward, bool* term);
+  std::vector<float> simulateNextState(const std::vector<float> &actS, state_t state, state_info* info, int action, float* reward, bool* term);
   
   /** Select UCT action based on UCB1 algorithm. */
   int selectUCTAction(state_info* info);
@@ -312,12 +302,8 @@ private:
   std::vector<float> featmin;
   std::vector<float> intrinsicRewards;
 
-  /** Current history of previous actions. */
-  std::deque<float> saHistory;
-
   state_t prevstate;
   int prevact;
-  state_info* previnfo;
 
   double planTime;
   double initTime;
@@ -342,8 +328,6 @@ private:
   const int modelType;
   const std::vector<int> &statesPerDim;
   const bool trackActual;
-  const int HISTORY_SIZE;
-  const int HISTORY_FL_SIZE;
 
   const unsigned CLEAR_SIZE;
 };

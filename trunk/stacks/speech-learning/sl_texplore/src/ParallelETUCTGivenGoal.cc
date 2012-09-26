@@ -16,12 +16,11 @@
 ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, float rrange, float lambda,
                                                int MAX_ITER, float MAX_TIME, int MAX_DEPTH, int modelType,
                                                const std::vector<float> &fmax, const std::vector<float> &fmin,
-                                               const std::vector<int> &nstatesPerDim, bool trackActual, int historySize, Random r):
+                                               const std::vector<int> &nstatesPerDim, bool trackActual, Random r):
   numactions(numactions), gamma(gamma), rrange(rrange), lambda(lambda),
   MAX_ITER(MAX_ITER), MAX_TIME(MAX_TIME),
   MAX_DEPTH(MAX_DEPTH), modelType(modelType), statesPerDim(nstatesPerDim),
-  trackActual(trackActual), HISTORY_SIZE(historySize),
-  HISTORY_FL_SIZE(historySize*numactions),
+  trackActual(trackActual),
   CLEAR_SIZE(25)
 {
   rng = r;
@@ -34,7 +33,6 @@ ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, floa
   seedMode = false;
   timingType = true;
 
-  previnfo = NULL;
   model = NULL;
   planTime = getSeconds();
   initTime = getSeconds();
@@ -50,7 +48,6 @@ ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, floa
   MTHREADDEBUG = false; //true;
   TIMINGDEBUG = false;
   REALSTATEDEBUG = false;
-  HISTORYDEBUG = false; //true;
   GOALDEBUG = true;
 
   // init goal stuff
@@ -67,14 +64,12 @@ ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, floa
   if (trackActual){
     cout << "Parallel ETUCT tracking real state values" << endl;
   }
-  cout << "Planner using history size: " << HISTORY_SIZE << endl;
 
   featmax = fmax;
   featmin = fmin;
   intrinsicRewards.resize(featmax.size()+1,0);
 
   pthread_mutex_init(&update_mutex, NULL);
-  pthread_mutex_init(&history_mutex, NULL);
   pthread_mutex_init(&nactions_mutex, NULL);
   pthread_mutex_init(&plan_state_mutex, NULL);
   pthread_mutex_init(&statespace_mutex, NULL);
@@ -97,21 +92,6 @@ ParallelETUCTGivenGoal::ParallelETUCTGivenGoal(int numactions, float gamma, floa
   modelThreadStarted = false;
   planThreadStarted = false;
   expList.clear();
-
-  if (HISTORY_SIZE == 0){
-    saHistory.push_back(0.0);
-  }
-  else {
-    if (HISTORYDEBUG) {
-      cout << "History size of " << HISTORY_SIZE
-           << " float size of " << HISTORY_FL_SIZE
-           << " with state size: " << fmin.size()
-           << " and numact: " << numactions << endl;
-    }
-    for (int i = 0; i < HISTORY_FL_SIZE; i++){
-      saHistory.push_back(0.0);
-    }
-  }
 
   //  initStates();
 }
@@ -216,17 +196,6 @@ bool ParallelETUCTGivenGoal::updateModelWithExperience(const std::vector<float> 
   prevstate = last;
   prevact = lastact;
 
-  // get state info
-  pthread_mutex_lock(&statespace_mutex);
-  previnfo = &(statedata[last]);
-  pthread_mutex_unlock(&statespace_mutex);
-
-  // update the state visit count
-  pthread_mutex_lock(&previnfo->stateinfo_mutex);
-  previnfo->visits[lastact]++;
-  previnfo->totalVisits++;
-  pthread_mutex_unlock(&previnfo->stateinfo_mutex);
-
   if (MODELDEBUG){
     cout << "Update with exp from state: ";
     for (unsigned i = 0; i < last->size(); i++){
@@ -252,62 +221,6 @@ bool ParallelETUCTGivenGoal::updateModelWithExperience(const std::vector<float> 
   e.act = lastact;
   e.reward = reward;
   e.terminal = term;
-
-  if (HISTORY_SIZE > 0){
-    if (HISTORYDEBUG) {
-      cout << "Original state vector (size " << e.s.size() << ": " << e.s[0];
-      for (unsigned i = 1; i < e.s.size(); i++){
-        cout << "," << e.s[i];
-      }
-      cout << endl;
-    }
-    // add history onto e.s
-    pthread_mutex_lock(&history_mutex);
-    for (int i = 0; i < HISTORY_FL_SIZE; i++){
-      e.s.push_back(saHistory[i]);
-    }
-    pthread_mutex_unlock(&history_mutex);
-
-    if (HISTORYDEBUG) {
-      cout << "New state vector (size " << e.s.size() << ": " << e.s[0];
-      for (unsigned i = 1; i < e.s.size(); i++){
-        cout << "," << e.s[i];
-      }
-      cout << endl;
-    }
-
-    if (!seedMode){
-      pthread_mutex_lock(&history_mutex);
-      // push this state and action onto the history vector
-      /*
-        for (unsigned i = 0; i < last->size(); i++){
-        saHistory.push_back((*last)[i]);
-        saHistory.pop_front();
-        }
-
-        saHistory.push_back((*last)[3]);
-        saHistory.pop_front();
-      */
-      for (int i = 0; i < numactions; i++){
-        if (i == lastact)
-          saHistory.push_back(1.0);
-        else
-          saHistory.push_back(0.0);
-        saHistory.pop_front();
-      }
-
-      //      saHistory.push_back(lastact);
-      //saHistory.pop_front();
-      if (HISTORYDEBUG) {
-        cout << "New history vector (size " << saHistory.size() << ": " << saHistory[0];
-        for (unsigned i = 1; i < saHistory.size(); i++){
-          cout << "," << saHistory[i];
-        }
-        cout << endl;
-      }
-      pthread_mutex_unlock(&history_mutex);
-    }
-  }
 
   expList.push_back(e);
   //expfile.saveExperience(e);
@@ -338,60 +251,13 @@ bool ParallelETUCTGivenGoal::updateModelWithExperience(const std::vector<float> 
 /** Update a single state-action from the model */
 void ParallelETUCTGivenGoal::updateStateActionFromModel(state_t s, int a, state_info* info){
 
-  if (HISTORY_SIZE == 0){
-    pthread_mutex_lock(&info->statemodel_mutex);
+  pthread_mutex_lock(&info->statemodel_mutex);
 
-    std::deque<float> history(1,0.0);
-    StateActionInfo* newModel = NULL;
-    newModel = &(info->historyModel[a][history]);
+  StateActionInfo* newModel = &(info->model[a]);
 
-    updateStateActionHistoryFromModel(*s, a, newModel);
-    pthread_mutex_unlock(&info->statemodel_mutex);
-
-  }
-
-  else {
-    pthread_mutex_lock(&info->statemodel_mutex);
-
-    // clear large ones
-    if (info->historyModel[a].size() > CLEAR_SIZE){
-
-      //      cout << "clearing model map of size " << info->historyModel[a].size() << endl;
-
-      // instead, clear because these take too much memory to keep around
-      info->historyModel[a].clear();
-
-    } else {
-
-      // fill in for all histories???
-      for (std::map< std::deque<float>, StateActionInfo>::iterator it = info->historyModel[a].begin();
-           it != info->historyModel[a].end(); it++){
-
-        std::deque<float> oneHist = (*it).first;
-        StateActionInfo* newModel = &((*it).second);
-
-        // add history to vector
-        std::vector<float> modState = *s;
-        for (int i = 0; i < HISTORY_FL_SIZE; i++){
-          modState.push_back(oneHist[i]);
-        }
-        updateStateActionHistoryFromModel(modState, a, newModel);
-      }
-    }
-
-    pthread_mutex_unlock(&info->statemodel_mutex);
-  }
-
-}
-
-/** Update a single state-action from the model */
-void ParallelETUCTGivenGoal::updateStateActionHistoryFromModel(const std::vector<float> modState, int a, StateActionInfo *newModel){
-
-  // update state info
-  // get state action info for each action
   pthread_mutex_lock(&model_mutex);
 
-  model->getStateActionInfo(modState, a, newModel);
+  model->getStateActionInfo(*s, a, newModel);
 
   pthread_mutex_lock(&nactions_mutex);
   newModel->frameUpdated = nactions;
@@ -399,9 +265,11 @@ void ParallelETUCTGivenGoal::updateStateActionHistoryFromModel(const std::vector
 
   pthread_mutex_unlock(&model_mutex);
 
-  //canonNextStates(newModel);
+  pthread_mutex_unlock(&info->statemodel_mutex);
 
 }
+
+
 
 void ParallelETUCTGivenGoal::canonNextStates(StateActionInfo* modelInfo){
 
@@ -674,7 +542,7 @@ void ParallelETUCTGivenGoal::resetAndUpdateStateActions(){
     for (int j = 0; j < numactions; j++){
       if (info->uctActions[j] > MIN_VISITS)
         info->uctActions[j] = MIN_VISITS;
-      if (info->needsUpdate || info->historyModel[j].size() > CLEAR_SIZE){
+      if (info->needsUpdate){
         updateStateActionFromModel(s, j, info);
       }
     }
@@ -761,15 +629,13 @@ void ParallelETUCTGivenGoal::initStateInfo(state_t s, state_info* info, int id){
   // model data (transition, reward, known)
 
   pthread_mutex_lock(&info->statemodel_mutex);
-  info->historyModel = new std::map< std::deque<float>, StateActionInfo>[numactions];
+  info->model = new StateActionInfo[numactions];
   pthread_mutex_unlock(&info->statemodel_mutex);
 
   info->id = id;
   if (PLANNERDEBUG) cout << " id = " << info->id << endl;
 
   // model q values, visit counts
-  info->visits.resize(numactions, 0);
-  info->totalVisits = 0;
   info->Q.resize(numactions, 0);
   info->uctActions.resize(numactions, 1);
   info->uctVisits = 1;
@@ -808,8 +674,7 @@ void ParallelETUCTGivenGoal::printStates(){
     pthread_mutex_lock(&info->stateinfo_mutex);
     //pthread_mutex_lock(&info->statemodel_mutex);
     for (int act = 0; act < numactions; act++){
-      cout << " visits[" << act << "] = " << info->visits[act]
-           << " Q: " << info->Q[act] << endl;
+      cout << " Q: " << info->Q[act] << endl;
       // << " R: " << info->modelInfo[act].reward << endl;
     }
     // pthread_mutex_unlock(&info->statemodel_mutex);
@@ -825,7 +690,7 @@ void ParallelETUCTGivenGoal::printStates(){
 
 void ParallelETUCTGivenGoal::deleteInfo(state_info* info){
 
-  delete [] info->historyModel;
+  delete [] info->model;
 
 }
 
@@ -850,7 +715,7 @@ double ParallelETUCTGivenGoal::getSeconds(){
 
     From "Bandit Based Monte Carlo Planning" by Kocsis and Csaba.
 */
-float ParallelETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, int depth, std::deque<float> &searchHistory){
+float ParallelETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t discS, int depth){
   if (UCTDEBUG){
     cout << " uctSearch state ";
     for (unsigned i = 0; i < actS.size(); i++){
@@ -913,7 +778,7 @@ float ParallelETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t 
 
   pthread_mutex_unlock(&info->stateinfo_mutex);
 
-  std::vector<float> actualNext = simulateNextState(actS, discS, info, searchHistory, action, &reward, &term);
+  std::vector<float> actualNext = simulateNextState(actS, discS, info, action, &reward, &term);
 
   // simulate reward from this action
   if (term){
@@ -947,38 +812,8 @@ float ParallelETUCTGivenGoal::uctSearch(const std::vector<float> &actS, state_t 
   info->visited++; // = true;
   pthread_mutex_unlock(&info->stateinfo_mutex);
 
-  if (HISTORY_SIZE > 0){
-    // update history vector for this state
-    /*
-      for (unsigned i = 0; i < (*discS).size(); i++){
-      searchHistory.push_back((*discS)[i]);
-      searchHistory.pop_front();
-      }
-
-      searchHistory.push_back((*discS)[3]);
-      searchHistory.pop_front();
-    */
-    for (int i = 0; i < numactions; i++){
-      if (i == action)
-        searchHistory.push_back(1.0);
-      else
-        searchHistory.push_back(0.0);
-      searchHistory.pop_front();
-    }
-
-    //    searchHistory.push_back(action);
-    //searchHistory.pop_front();
-    if (HISTORYDEBUG) {
-      cout << "New planning history vector (size " << searchHistory.size() << ": " << searchHistory[0];
-      for (unsigned i = 1; i < searchHistory.size(); i++){
-        cout << "," << searchHistory[i];
-      }
-      cout << endl;
-    }
-  }
-
   // new q value
-  float newQ = reward + gamma * uctSearch(actualNext, discNext, depth+1, searchHistory);
+  float newQ = reward + gamma * uctSearch(actualNext, discNext, depth+1);
 
   pthread_mutex_lock(&info->stateinfo_mutex);
 
@@ -1075,30 +910,21 @@ int ParallelETUCTGivenGoal::selectUCTAction(state_info* info){
 }
 
 /** sample from next state distribution */
-std::vector<float> ParallelETUCTGivenGoal::simulateNextState(const std::vector<float> &actualState, state_t discState, state_info* info, const std::deque<float> &history, int action, float* reward, bool* term){
+std::vector<float> ParallelETUCTGivenGoal::simulateNextState(const std::vector<float> &actualState, state_t discState, state_info* info, int action, float* reward, bool* term){
   //if (UCTDEBUG) cout << "  simulateNextState" << endl;
 
 
   // check if its up to date
   pthread_mutex_lock(&info->statemodel_mutex);
   StateActionInfo* modelInfo = NULL;
-  modelInfo = &(info->historyModel[action][history]);
+  modelInfo = &(info->model[action]);
 
   pthread_mutex_lock(&update_mutex);
   bool upToDate = modelInfo->frameUpdated >= lastUpdate;
   pthread_mutex_unlock(&update_mutex);
 
   if (!upToDate){
-    // must put in appropriate history
-    if (HISTORY_SIZE > 0){
-      std::vector<float> modState = *discState;
-      for (int i = 0; i < HISTORY_FL_SIZE; i++){
-        modState.push_back(history[i]);
-      }
-      updateStateActionHistoryFromModel(modState, action, modelInfo);
-    } else {
-      updateStateActionHistoryFromModel(*discState, action, modelInfo);
-    }
+    updateStateActionFromModel(discState, action, info);
   }
 
   //*reward = modelInfo->reward;
@@ -1213,42 +1039,32 @@ std::vector<float> ParallelETUCTGivenGoal::selectRandomState(){
   std::vector<float> state;
 
   // try 5 times to get one with real visits
-  for (int k = 0; k < 5; k++){
 
-    pthread_mutex_lock(&statespace_mutex);
-    if (statespace.size() > 1){
-      index = rng.uniformDiscrete(0, statespace.size()-1);
-    }
-    pthread_mutex_unlock(&statespace_mutex);
+  pthread_mutex_lock(&statespace_mutex);
+  if (statespace.size() > 1){
+    index = rng.uniformDiscrete(0, statespace.size()-1);
+  }
+  pthread_mutex_unlock(&statespace_mutex);
 
-    int cnt = 0;
+  int cnt = 0;
 
-    if (PTHREADDEBUG) cout << "*** Planning thread wants search lock (randomstate) ***" << endl << flush;
+  if (PTHREADDEBUG) cout << "*** Planning thread wants search lock (randomstate) ***" << endl << flush;
 
-    pthread_mutex_lock(&statespace_mutex);
-    for (std::set<std::vector<float> >::iterator i = statespace.begin();
-         i != statespace.end(); i++, cnt++){
-      if (cnt == index){
-        state = *i;
-        break;
-      }
-    }
-    pthread_mutex_unlock(&statespace_mutex);
-
-    s = canonicalize(state);
-
-    pthread_mutex_lock(&statespace_mutex);
-    state_info* info = &(statedata[s]);
-    pthread_mutex_unlock(&statespace_mutex);
-
-    pthread_mutex_lock(&info->stateinfo_mutex);
-    if (info->totalVisits > 0){
-      pthread_mutex_unlock(&info->stateinfo_mutex);
+  pthread_mutex_lock(&statespace_mutex);
+  for (std::set<std::vector<float> >::iterator i = statespace.begin();
+       i != statespace.end(); i++, cnt++){
+    if (cnt == index){
+      state = *i;
       break;
     }
-    pthread_mutex_unlock(&info->stateinfo_mutex);
-
   }
+  pthread_mutex_unlock(&statespace_mutex);
+
+  s = canonicalize(state);
+
+  pthread_mutex_lock(&statespace_mutex);
+  state_info* info = &(statedata[s]);
+  pthread_mutex_unlock(&statespace_mutex);
 
   return state;
 }
@@ -1270,14 +1086,12 @@ void ParallelETUCTGivenGoal::parallelSearch(){
 
   std::vector<float> actS;
   state_t discS;
-  std::deque<float> searchHistory;
 
   // get new planning state
   if (PTHREADDEBUG) {
     cout << "*** Planning thread wants planning state lock ***" << endl << flush;
   }
   pthread_mutex_lock(&(plan_state_mutex));
-  if (HISTORY_SIZE > 0) pthread_mutex_lock(&history_mutex);
 
   // too long on one state, lets do random
   if(!doRandom && (getSeconds()-setTime) > 0.5){
@@ -1289,20 +1103,17 @@ void ParallelETUCTGivenGoal::parallelSearch(){
   if (doRandom){
     actS = selectRandomState();
     discS = canonicalize(actS);
-    searchHistory.resize(saHistory.size(), 0);
     //    cout << "selected random state for search" << endl << flush;
   }
   // or take the state we're in (during episodes)
   else {
     actS = actualPlanState;
     discS = discPlanState;
-    searchHistory = saHistory;
   }
 
   // wait for non-null
   if (discS == NULL){
     pthread_mutex_unlock(&(plan_state_mutex));
-    if (HISTORY_SIZE > 0) pthread_mutex_unlock(&history_mutex);
     return;
   }
 
@@ -1320,7 +1131,6 @@ void ParallelETUCTGivenGoal::parallelSearch(){
 
   // call uct search on it
   pthread_mutex_unlock(&(plan_state_mutex));
-  if (HISTORY_SIZE > 0) pthread_mutex_unlock(&history_mutex);
 
   if (PTHREADDEBUG) cout << "*** Planning thread wants search lock ***" << endl;
   pthread_mutex_lock(&rollout_mutex);
@@ -1328,7 +1138,7 @@ void ParallelETUCTGivenGoal::parallelSearch(){
   pthread_mutex_unlock(&rollout_mutex);
 
 
-  uctSearch(actS, discS, 0, searchHistory);
+  uctSearch(actS, discS, 0);
 
   // signal that rollout is complete
   pthread_mutex_lock(&rollout_mutex);
@@ -1561,21 +1371,11 @@ std::vector<float> ParallelETUCTGivenGoal::subVec(const std::vector<float> &a, c
 }
 
 void ParallelETUCTGivenGoal::setFirst(){
-
-  if (HISTORY_SIZE == 0) return;
-
-  if (HISTORYDEBUG) cout << "first action, set sahistory to 0s" << endl;
-
-  pthread_mutex_lock(&(history_mutex));
-  // first action, reset history vector
-  saHistory.resize(saHistory.size(), 0.0);
-  pthread_mutex_unlock(&(history_mutex));
-
+  return;
 }
 
 void ParallelETUCTGivenGoal::setSeeding(bool seeding){
 
-  if (HISTORYDEBUG) cout << "set seed mode to " << seeding << endl;
   seedMode = seeding;
 
 }
@@ -1609,15 +1409,12 @@ void ParallelETUCTGivenGoal::resetValues(){
 
 
     // reset info
-    std::deque<float> history(1,0.0);
     for (int j = 0; j < numactions; j++){
-      info->visits[j] = 0;
       info->Q[j] = 0;
       info->uctActions[j] = 0;
-      info->historyModel[j][history] = StateActionInfo();
+      info->model[j] = StateActionInfo();
 
     }
-    info->totalVisits = 0;
     info->uctVisits = 0;
     info->visited = false;
     info->needsUpdate = true;

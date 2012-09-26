@@ -198,9 +198,9 @@ void ModelBasedAgent::initPlanner(){
   int max_path = 100; 
 
   if (plannerType == PARALLEL){
-    planner = new ParallelETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, history, rng);
+    planner = new ParallelETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, rng);
   } else {
-    planner = new ETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, history, rng);
+    planner = new ETUCTGivenGoal(numactions, gamma, rrange, lambda, 500000, MAX_TIME, max_path, modelType, featmax, featmin, statesPerDim, false, rng);
   }
 
 }
