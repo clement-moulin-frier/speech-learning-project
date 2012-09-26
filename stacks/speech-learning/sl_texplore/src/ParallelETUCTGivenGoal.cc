@@ -1035,7 +1035,6 @@ std::vector<float> ParallelETUCTGivenGoal::selectRandomState(){
 
   // take a random state from the space of ones we've visited
   int index = 0;
-  state_t s = NULL;
   std::vector<float> state;
 
   // try 5 times to get one with real visits
@@ -1058,12 +1057,6 @@ std::vector<float> ParallelETUCTGivenGoal::selectRandomState(){
       break;
     }
   }
-  pthread_mutex_unlock(&statespace_mutex);
-
-  s = canonicalize(state);
-
-  pthread_mutex_lock(&statespace_mutex);
-  state_info* info = &(statedata[s]);
   pthread_mutex_unlock(&statespace_mutex);
 
   return state;
