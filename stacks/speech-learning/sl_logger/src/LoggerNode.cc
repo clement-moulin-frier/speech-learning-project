@@ -176,7 +176,8 @@ void processSpeechFromTexplore(const sl_msgs::SLSpeech::ConstPtr &speechIn){
   // save num speeches called by texplore compared with speech learner calls
   if (texploreSpeeches){
     *texploreSpeeches << ngoals << "\t" << nstates << "\t" << nspeeches << "\t";
-    *texploreSpeeches << ntexspeeches << "\t" << ntexspeechlearners << endl;
+    *texploreSpeeches << ntexspeeches << "\t" << ntexspeechlearners;
+    *texploreSpeeches << "\t" << speechIn->f1 << "\t" << speechIn->f2 << endl;
   }
   
   processSpeech(speechIn);
@@ -192,7 +193,8 @@ void processGoalFromTexplore(const sl_msgs::SLGoal::ConstPtr &goalIn){
   // save num speeches called by texplore compared with speech learner calls
   if (texploreSpeeches){
     *texploreSpeeches << ngoals << "\t" << nstates << "\t" << nspeeches << "\t";
-    *texploreSpeeches << ntexspeeches << "\t" << ntexspeechlearners << endl;
+    *texploreSpeeches << ntexspeeches << "\t" << ntexspeechlearners;
+    *texploreSpeeches << "\t-1\t-1" << endl;
   }
     
 }
