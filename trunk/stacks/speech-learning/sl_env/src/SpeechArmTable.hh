@@ -76,7 +76,7 @@ public:
   std::vector<float> s;
   float& hand_x;
   float& hand_y;
-  float& hand_full;
+  float& hand_obj;
 
   struct object_info {
     float* x;
@@ -84,7 +84,6 @@ public:
     float* rel_x;
     float* rel_y;
     float* reachable;
-    float* in_hand;
     speech sound;
   };
 

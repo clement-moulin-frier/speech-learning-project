@@ -12,10 +12,10 @@ SpeechArmTable::SpeechArmTable(Random &rand, bool stochastic, int width, int nob
   nobjects(nobjects),
   speech_radius(speech_radius),
   rng(rand),
-  s(3+6*nobjects),
+  s(3+5*nobjects),
   hand_x(s[0]),
   hand_y(s[1]),
-  hand_full(s[2]),
+  hand_obj(s[2]),
   objects(nobjects)
 {
 
@@ -41,13 +41,12 @@ SpeechArmTable::~SpeechArmTable() {  }
 void SpeechArmTable::initObjects(){
   for (int i = 0; i < nobjects; i++){
     if (SPDEBUG) cout << "Init object " << i << endl << flush;
-    int startIndex = 3+i*6;
+    int startIndex = 3+i*5;
     objects[i].x = &(s[startIndex]);
     objects[i].y = &(s[startIndex+1]);
     objects[i].rel_x = &(s[startIndex+2]);
     objects[i].rel_y = &(s[startIndex+3]);
     objects[i].reachable = &(s[startIndex+4]);
-    objects[i].in_hand = &(s[startIndex+5]);
   }
   if (SPDEBUG) cout << "Objects init'd" << endl << flush;
 }
@@ -186,22 +185,20 @@ float SpeechArmTable::apply(int origAction) {
     hand_x--;
 
   // pickup action
-  if (action == PICKUP && !hand_full){
+  if (action == PICKUP && hand_obj == -1){
     for (int i = 0; i < nobjects; i++){
-      if (*objects[i].rel_x == 0 && *objects[i].rel_y == 0 && !hand_full){
-        hand_full = true;
-        *objects[i].in_hand = true;
+      if (*objects[i].rel_x == 0 && *objects[i].rel_y == 0 && hand_obj == -1){
+        hand_obj = i;
         break;
       }
     }
   }
 
   // putdown action
-  if (action == PUTDOWN && hand_full){
+  if (action == PUTDOWN && hand_obj != -1){
     for (int i = 0; i < nobjects; i++){
-      if (*objects[i].in_hand){
-        hand_full = false;
-        *objects[i].in_hand = false;
+      if (hand_obj == i){
+        hand_obj = -1;
         break;
       }
     }
@@ -226,7 +223,7 @@ void SpeechArmTable::updateRelativeDistances() {
 
   for (int i = 0; i < nobjects; i++){
     // update object location if its in our hand
-    if (*objects[i].in_hand){
+    if (hand_obj == i){
       *objects[i].x = hand_x;
       *objects[i].y = hand_y;
     }
@@ -253,6 +250,7 @@ void SpeechArmTable::reset() {
   // start objects and hand in random locations
   hand_x = rng.uniformDiscrete(0, width-1);
   hand_y = rng.uniformDiscrete(0, width-1);
+  hand_obj = -1;
 
   for (int i = 0; i < nobjects; i++){
     if (SPDEBUG) cout << "Set position of obj " << i << endl << flush;
@@ -335,11 +333,11 @@ void SpeechArmTable::print_map() const{
     cout << endl;
   } // last row
 
-  cout << "At " << hand_x << ", " << hand_y << ", hand_full? " << hand_full << endl;
+  cout << "At " << hand_x << ", " << hand_y << ", hand_obj? " << hand_obj << endl;
   for (int k = 0; k < nobjects; k++){
     cout << "Object " << k << " at " << *objects[k].x << ", " << *objects[k].y << endl;
     cout << " Relative location " << *objects[k].rel_x << ", " << *objects[k].rel_y << endl;
-    cout << " Reachable: " << *objects[k].reachable << ", in hand: " << *objects[k].in_hand << endl;
+    cout << " Reachable: " << *objects[k].reachable << endl;
   }
 }
 
@@ -353,10 +351,11 @@ void SpeechArmTable::getMinMaxFeatures(std::vector<float> *minFeat,
 
   (*maxFeat)[0] = width-1; // x
   (*maxFeat)[1] = height-1; // y: not really, but we dont know its not reachable
-  (*maxFeat)[2] = 1.0; // hand_full
+  (*maxFeat)[2] = nobjects-1; // hand_obj
+  (*minFeat)[2] = -1;
 
   for (int i = 0; i < nobjects; i++){
-    int startIndex = 3+i*6;
+    int startIndex = 3+i*5;
     (*maxFeat)[startIndex] = width-1; // x
     (*maxFeat)[startIndex+1] = height-1; // y
     (*minFeat)[startIndex+2] = -(width-1); // rel x
@@ -364,7 +363,6 @@ void SpeechArmTable::getMinMaxFeatures(std::vector<float> *minFeat,
     (*maxFeat)[startIndex+2] = width-1; // rel x
     (*maxFeat)[startIndex+3] = height-1; // rel y
     (*maxFeat)[startIndex+4] = 1.0; // reachable
-    (*maxFeat)[startIndex+5] = 1.0; // in hand
   }
 
 }
