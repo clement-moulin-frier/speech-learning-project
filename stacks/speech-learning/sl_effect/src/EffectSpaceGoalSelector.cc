@@ -8,12 +8,12 @@
 
 #include <sys/time.h>
 
-EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin, 
+EffectSpaceGoalSelector::EffectSpaceGoalSelector(int numobjects, int width, const std::vector<float> &featmin,
                                                  const std::vector<float> &featmax, int goalSelect,
                                                  int learnerSelect, int tau, int theta, bool debug, int evalFreq,
                                                  Random rng):
   numobjects(numobjects), width(width), featmin(featmin), featmax(featmax),
-  goalSelect(goalSelect), learnerSelect(learnerSelect), 
+  goalSelect(goalSelect), learnerSelect(learnerSelect),
   tau(tau), theta(theta), evalFreq(evalFreq), rng(rng)
 {
 
@@ -72,18 +72,18 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.start_mask.assign(featmax.size(), false);
     newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
     newGoal.goalMsg.start_state.assign(featmax.size(), 0);
-    newGoal.goalMsg.goal_mask[3+6*i+4] = true;
-    newGoal.goalMsg.start_mask[3+6*i+4] = true;
-    
+    newGoal.goalMsg.goal_mask[3+5*i+4] = true;
+    newGoal.goalMsg.start_mask[3+5*i+4] = true;
+
     // reachable or not
     for (int j = 0; j < 2; j++){
 
-      newGoal.goalMsg.goal_state[3+6*i+4] = 1 - j;
-      newGoal.goalMsg.start_state[3+6*i+4] = j;
+      newGoal.goalMsg.goal_state[3+5*i+4] = 1 - j;
+      newGoal.goalMsg.start_state[3+5*i+4] = j;
       newGoal.goalMsg.title.clear();
       ostringstream os(newGoal.goalMsg.title);
       os << "Make object " << i;
-      if (newGoal.goalMsg.goal_state[3+6*i+4]) os << " reachable.";
+      if (newGoal.goalMsg.goal_state[3+5*i+4]) os << " reachable.";
       else os << " UNreachable.";
       newGoal.goalMsg.title = os.str();
 
@@ -104,19 +104,19 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
     newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about whether we start from obj already reachable or not
-    newGoal.goalMsg.start_mask[3+6*i+4] = true;
-    newGoal.goalMsg.goal_state[3+6*i+2] = 0;
-    newGoal.goalMsg.goal_state[3+6*i+3] = 0;
-    newGoal.goalMsg.goal_mask[3+6*i+2] = true;
-    newGoal.goalMsg.goal_mask[3+6*i+3] = true;
+    newGoal.goalMsg.start_mask[3+5*i+4] = true;
+    newGoal.goalMsg.goal_state[3+5*i+2] = 0;
+    newGoal.goalMsg.goal_state[3+5*i+3] = 0;
+    newGoal.goalMsg.goal_mask[3+5*i+2] = true;
+    newGoal.goalMsg.goal_mask[3+5*i+3] = true;
 
     // start reachable or not
     for (int j = 0; j < 2; j++){
-      newGoal.goalMsg.start_state[3+6*i+4] = j;
+      newGoal.goalMsg.start_state[3+5*i+4] = j;
       newGoal.goalMsg.title.clear();
       ostringstream os(newGoal.goalMsg.title);
       os << "Put hand on ";
-      if (newGoal.goalMsg.start_state[3+6*i+4])
+      if (newGoal.goalMsg.start_state[3+5*i+4])
         os << "reachable object " << i;
       else
         os << "unreachable object " << i;
@@ -126,7 +126,7 @@ void EffectSpaceGoalSelector::initGoals(){
         cout << "Adding goal " << goals.size() << ": ";
         printGoal(&newGoal);
       }
-      
+
       // possibly make this one for the eval set
       if (i == 0 && j == 0)
         evalIndices.push_back(goals.size());
@@ -143,26 +143,31 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
     newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about whether we start from obj already reachable or not
-    newGoal.goalMsg.start_mask[3+6*i+4] = true;
-    newGoal.goalMsg.goal_mask[3+6*i+5] = true;
-    newGoal.goalMsg.start_mask[3+6*i+5] = true;
+    newGoal.goalMsg.start_mask[3+5*i+4] = true;
+    newGoal.goalMsg.goal_mask[2] = true;
+    newGoal.goalMsg.start_mask[2] = true;
 
     // start reachable or not
     for (int j = 0; j < 2; j++){
-      newGoal.goalMsg.start_state[3+6*i+4] = j;
+      newGoal.goalMsg.start_state[3+5*i+4] = j;
 
       // and goal is in hand or not
       for (int k = 0; k < 2; k++){
-        newGoal.goalMsg.goal_state[3+6*i+5] = 1 - k;
-        newGoal.goalMsg.start_state[3+6*i+5] = k;
+        if (k == 0){
+          newGoal.goalMsg.goal_state[2] = i;
+          newGoal.goalMsg.start_state[2] = -1;
+        } else {
+          newGoal.goalMsg.goal_state[2] = -1;
+          newGoal.goalMsg.start_state[2] = i;
+        }
         newGoal.goalMsg.title.clear();
         ostringstream os(newGoal.goalMsg.title);
         os << "Put ";
-        if (newGoal.goalMsg.start_state[3+6*i+4])
+        if (newGoal.goalMsg.start_state[3+5*i+4])
           os << "reachable object " << i;
         else
           os << "unreachable object " << i;
-        if (newGoal.goalMsg.goal_state[3+6*i+5])
+        if (newGoal.goalMsg.goal_state[2] != -1)
           os << " in hand.";
         else
           os << " down.";
@@ -172,12 +177,18 @@ void EffectSpaceGoalSelector::initGoals(){
           cout << "Adding goal " << goals.size() << ": ";
           printGoal(&newGoal);
         }
+
+        // possibly make this one for the eval set
+        if (i == 0 && j == 0 && k == 0)
+          evalIndices.push_back(goals.size());
+
         newGoal.goalMsg.goal_id = goals.size();
         goals.push_back(newGoal);
+
       }
     }
   }
-  
+
   // Goal Type 5: Get object i to location x,y
   for (int i = 0; i < numobjects; i++){
     newGoal.goalMsg.goal_mask.assign(featmax.size(), false);
@@ -185,23 +196,23 @@ void EffectSpaceGoalSelector::initGoals(){
     newGoal.goalMsg.goal_state.assign(featmax.size(), 0);
     newGoal.goalMsg.start_state.assign(featmax.size(), 0);
     // care about starting reachable or not
-    newGoal.goalMsg.start_mask[3+6*i+4] = true;
-    // and care about final destination 
-    newGoal.goalMsg.goal_mask[3+6*i+0] = true;
-    newGoal.goalMsg.goal_mask[3+6*i+1] = true;    
+    newGoal.goalMsg.start_mask[3+5*i+4] = true;
+    // and care about final destination
+    newGoal.goalMsg.goal_mask[3+5*i+0] = true;
+    newGoal.goalMsg.goal_mask[3+5*i+1] = true;
 
     for (int x = 0; x < width; x++){
       for (int y = 0; y < width*2; y++){
-        newGoal.goalMsg.goal_state[3+6*i+0] = x;
-        newGoal.goalMsg.goal_state[3+6*i+1] = y;
+        newGoal.goalMsg.goal_state[3+5*i+0] = x;
+        newGoal.goalMsg.goal_state[3+5*i+1] = y;
 
         // start from reachable/unreachable
         for (int j = 0; j < 2; j++){
-          newGoal.goalMsg.start_state[3+6*i+4] = j;
+          newGoal.goalMsg.start_state[3+5*i+4] = j;
           newGoal.goalMsg.title.clear();
           ostringstream os(newGoal.goalMsg.title);
           os << "Put ";
-          if (newGoal.goalMsg.start_state[3+6*i+4])
+          if (newGoal.goalMsg.start_state[3+5*i+4])
             os << "reachable object " << i;
           else
             os << "unreachable object " << i;
@@ -225,7 +236,6 @@ void EffectSpaceGoalSelector::initGoals(){
       }
     }
   }
-
   cout << goals.size() << " goals created." << endl;
 
 }
@@ -309,7 +319,7 @@ int EffectSpaceGoalSelector::selectRandomGoal(std::vector<float> currentState){
 
   return goalIndex;
 }
-      
+
 
 
 
@@ -331,7 +341,7 @@ int EffectSpaceGoalSelector::selectCompetenceProgressGoal(std::vector<float> cur
 
     // calc competence progress for this goal
     float progress = calcCompetenceProgress(goals[i].allRewards);
-    if (GOALDEBUG) 
+    if (GOALDEBUG)
       cout << "  Goal " << i << " progress: " << progress << endl;
 
     if (progress > bestProgress){
@@ -472,7 +482,7 @@ float EffectSpaceGoalSelector::calcCompetenceProgress(std::deque<float> &results
     before += results[i];
   }
   before /= (float)theta;
-  
+
   float change = fabs(now-before);
 
   if (GOALDEBUG)
@@ -499,20 +509,20 @@ float EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
   if (currentGoal->allRewards.size() > (tau+theta)){
     currentGoal->allRewards.pop_front();
   }
-  
+
   // and for individual learners
   if (whichLearner == TexploreLearner){
     currentGoal->texploreRewards.push_back(dist);
     if (currentGoal->texploreRewards.size() > (tau+theta)){
       currentGoal->texploreRewards.pop_front();
     }
-  } 
+  }
   else if (whichLearner == SpeechLearner){
     currentGoal->speechRewards.push_back(dist);
     if (currentGoal->speechRewards.size() > (tau+theta)){
       currentGoal->speechRewards.pop_front();
     }
-  } 
+  }
   else {
     cout << "ERROR: invalid learner type " << whichLearner << endl;
     exit(-1);
@@ -522,7 +532,7 @@ float EffectSpaceGoalSelector::updateGoal(std::vector<float> finalState){
 
   return dist;
 }
- 
+
 
 float EffectSpaceGoalSelector::calculateDistance(std::vector<float> finalState){
   // lets scale this so distance of 1 if we're still at start state, and dist of 0, if we're at goal
@@ -560,16 +570,16 @@ void EffectSpaceGoalSelector::printGoal(goal* sg){
 
   /*
 
-  cout << "Goal region is: " << endl;
-  for (unsigned i = 0; i < sg->goalMsg.goal_state.size(); i++){
+    cout << "Goal region is: " << endl;
+    for (unsigned i = 0; i < sg->goalMsg.goal_state.size(); i++){
     if (sg->goalMsg.goal_mask[i])
-      cout << "  Feat " << i << ": " << sg->goalMsg.goal_state[i] << endl;
-  }
-  cout << " From start region: " << endl;
-  for (unsigned i = 0; i < sg->goalMsg.start_state.size(); i++){
+    cout << "  Feat " << i << ": " << sg->goalMsg.goal_state[i] << endl;
+    }
+    cout << " From start region: " << endl;
+    for (unsigned i = 0; i < sg->goalMsg.start_state.size(); i++){
     if (sg->goalMsg.start_mask[i])
-      cout << "   Feat " << i << ": " << sg->goalMsg.start_state[i] << endl;
-  }
+    cout << "   Feat " << i << ": " << sg->goalMsg.start_state[i] << endl;
+    }
 
   */
 }
@@ -588,7 +598,7 @@ int EffectSpaceGoalSelector::evaluateGoals(){
   if (!evalMode){
     evalMode = true;
     currentEvalGoal = 0;
-  } 
+  }
   else {
     currentEvalGoal++;
   }
